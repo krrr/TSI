@@ -33,7 +33,8 @@ def eval(exp, env):
             alter = None if len(exp) != 4 else exp[3]
             exp = SExpIf(exp[1], exp[2], alter)
         elif is_lambda(exp):
-            if not isinstance(exp[1], tuple): raise Exception('ill-form lambda')
+            if len(exp) < 3 or not isinstance(exp[1], tuple):
+                raise Exception('ill-form lambda')
             exp = SExpLambda(exp[1], exp[2:])
         elif is_cond(exp):
             exp = SExpCond(exp[1:])
@@ -44,6 +45,7 @@ def eval(exp, env):
         elif is_or(exp):
             exp = SExpOr(exp[1:])
         elif is_begin(exp):
+            if len(exp) < 2: raise Exception('ill-form begin')
             exp = SExpBegin(exp[1:])
         elif is_definition(exp):
             if isinstance(exp[1], str):
@@ -74,7 +76,6 @@ def apply(proc, args):
         raise Exception('Unknown procedure type -- APPLY (%s)' % str(proc))
 
 
-eval_sequence = lambda seq, e: (tuple(map(lambda i: eval(i, e), seq))[-1]
-                                if seq else theNil)
+eval_sequence = lambda seq, e: tuple(map(lambda i: eval(i, e), seq))[-1]
 
 from .expression import *

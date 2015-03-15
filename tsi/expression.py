@@ -108,11 +108,8 @@ class SExpApplication(SExp):
         self.operator, self.operands, self.env = operator, operands, env
 
     def eval(self, env):
-        return apply(
-            eval(self.operator, env),
-            tuple(map(lambda e: eval(e, env), self.operands)))
-
-        # def analyze(self, rawExp):
+        return apply(eval(self.operator, env),
+                     tuple(map(lambda i: eval(i, env), self.operands)))
 
 
 class SExpIf(SExp):
