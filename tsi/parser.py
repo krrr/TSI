@@ -8,8 +8,8 @@ def parse(s, multi_exp=False):
         'a 'b => (('quote', 'a'), ('quote', 'b'))  # multi_exp enabled"""
     # taken from lis.py, my old solution has been completely beaten by this...
     def read_from_tokens(tokens):
-        """If tokens starts with left bracket, return all tokens (recursively
-        apply this function) in matched brackets. Else, return the first token."""
+        """If tokens starts with left parenthesis, return all tokens (recursively
+        apply this function) in matched parenthesis. Else, return the first token."""
         token = tokens.pop(0)
         if token == '(':
             L = []
@@ -19,7 +19,7 @@ def parse(s, multi_exp=False):
             return tuple(L)
         elif token == ')':
             raise Exception("Bracket doesn't match")
-        elif token == "'":  # quote before left bracket
+        elif token == "'":  # quote before left parenthesis
             return 'quote', read_from_tokens(tokens)
         else:  # atom may starts with "'"
             return ('quote', token[1:]) if token.startswith("'") else token
@@ -31,6 +31,6 @@ def parse(s, multi_exp=False):
     try:
         ret = read_from_tokens(tokens)
     except IndexError:
-        raise ValueError('Too few right brackets')
-    if tokens: raise Exception('Too many right brackets')
+        raise ValueError('Too few right parentheses')
+    if tokens: raise Exception('Too many right parentheses')
     return ret
