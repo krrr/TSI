@@ -3,7 +3,6 @@
 import sys
 from traceback import print_exc
 from tsi import eval, setup_environment, parse, load_file, show_err
-from tsi.parser import NoEnoughBracketsError
 from tsi.expression import theNil
 from tsi import __version__
 
@@ -17,7 +16,7 @@ def read():
     while True:
         try:
             return parse(''.join(ss))
-        except (NoEnoughBracketsError, ValueError):
+        except ValueError:
             ss += [' ', input()]
 
 
