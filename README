@@ -1,5 +1,0 @@
-Missing:
-floating-point number, division
-quasiquote notation, # literals
-call/cc, tail-recursion-optimization
-many primary procedures
