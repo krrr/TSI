@@ -18,7 +18,7 @@ def parse(s, multi_exp=False):
             del tokens[0]  # remove ')'
             return tuple(L)
         elif token == ')':
-            raise Exception("Bracket doesn't match")
+            raise Exception("Parenthesis doesn't match")
         elif token == "'":  # quote before left parenthesis
             return 'quote', read_from_tokens(tokens)
         else:  # atom may starts with "'"
@@ -32,5 +32,6 @@ def parse(s, multi_exp=False):
         ret = read_from_tokens(tokens)
     except IndexError:
         raise ValueError('Too few right parentheses')
-    if tokens: raise Exception('Too many right parentheses')
+    if tokens:
+        raise Exception('Too many right parentheses or more than one expression')
     return ret
