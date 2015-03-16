@@ -1,7 +1,7 @@
 import sys
 
 __author__ = 'krrr'
-__version__ = '0.01'
+__version__ = '0.02'
 
 
 def load_file(path):

@@ -11,7 +11,7 @@ class SPrimitiveProc:
 
 
 class SCompoundProc:
-    def __init__(self, parameters=None, body=None, env=None):
+    def __init__(self, parameters, body, env):
         self.parameters = parameters
         self.body = body
         self.env = env
@@ -24,7 +24,7 @@ class SCompoundProc:
         if len(self.parameters) != len(args):
             raise Exception('Too few or too much arguments -- APPLY (%s)' % self)
         env = self.env.makeExtend(zip(self.parameters, args))
-        return eval_sequence(self.body, env)
+        return self.body(env)
 
 
 prim_proc_name_obj_pairs = lambda: _prim_implements.items()
@@ -151,5 +151,4 @@ _prim_implements = {
 
 
 from . import load_file
-from .core import eval, eval_sequence
 from .expression import *

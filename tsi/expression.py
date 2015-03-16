@@ -1,8 +1,9 @@
 
 class SExp:
     """The base class of all expression"""
-    def eval(self, env):
-        """Be sure to return in this method!"""
+    def __call__(self, env):
+        """Evaluate this expression in given environment."""
+        # be sure to return in this method!
         raise NotImplementedError
 
 
@@ -11,13 +12,13 @@ class SObject:
 
 
 class SSelfEvalExp(SExp):
-    def eval(self, _):
+    def __call__(self, __):
         return self
 
 
 class SNumber(SSelfEvalExp):
-    def __init__(self, num=0):
-        self.num = num
+    def __init__(self, exp):
+        self.num = int(exp)
 
     def __eq__(self, other):
         return isinstance(other, SNumber) and self.num == other.num
@@ -35,8 +36,8 @@ class SNumber(SSelfEvalExp):
 
 
 class SString(SSelfEvalExp):
-    def __init__(self, string=''):
-        self.string = string
+    def __init__(self, exp):
+        self.string = exp[1:-1]
 
     def __str__(self):
         return self.string
@@ -92,103 +93,125 @@ def is_false(exp):
     return exp is theFalse
 
 
-def _seq_to_exp(seq):
-    """Make a sequence into a expression. If seq just has one exp, return it.
-    If seq is empty, return it."""
-    return seq and (seq[0] if len(seq) == 1 else SExpBegin(seq))
-
-
 theTrue, theFalse, theNil = STrue(), SFalse(), SNil()
 
 
 # special forms
 
-class SExpApplication(SExp):
-    def __init__(self, operator=None, operands=None, env=None):
-        self.operator, self.operands, self.env = operator, operands, env
+class SExpVariable(SExp):
+    def __init__(self, exp):
+        self.name = exp
 
-    def eval(self, env):
-        return apply(eval(self.operator, env),
-                     tuple(map(lambda i: eval(i, env), self.operands)))
+    def __call__(self, env):
+        return env.getVarValue(self.name)
+
+
+class SExpApplication(SExp):
+    def __init__(self, exp):
+        operator, *operands = exp
+        self.operator = analyze(operator)
+        self.operands = tuple(map(analyze, operands))
+
+    def __call__(self, env):
+        return apply(self.operator(env),
+                     tuple(map(lambda i: i(env), self.operands)))
 
 
 class SExpIf(SExp):
-    def __init__(self, predicate=None, consequent=None, alternative=None):
-        self.predicate, self.consequent, self.alternative = (
-            predicate, consequent, alternative)
+    def __init__(self, exp):
+        if not 3 <= len(exp) <= 4: raise Exception('ill-form if')
+        __, pre, con, *alter = exp
+        self.predicate, self.consequent = analyze(pre), analyze(con)
+        self.alternative = analyze(alter[0]) if alter else theFalse
 
-    def eval(self, env):
-        if is_true(eval(self.predicate, env)):
-            return eval(self.consequent, env)
-        elif self.alternative is not None:
-            return eval(self.alternative, env)
+    def __call__(self, env):
+        if is_true(self.predicate(env)):
+            return self.consequent(env)
         else:
-            return theFalse
+            return self.alternative(env)
 
 
 class SExpBegin(SExp):
-    def __init__(self, seq):
-        self.seq = seq
+    def __init__(self, exp):
+        if len(exp) < 2: raise Exception('ill-from begin')
+        self.body = analyze_seq(exp[1:])
 
-    def eval(self, env):
-        return eval_sequence(self.seq, env)
+    def __call__(self, env):
+        return self.body(env)
 
 
 class SExpAssignment(SExp):
-    def __init__(self, var=None, value=None):
-        self.var, self.value = var, value
+    def __init__(self, exp):
+        if len(exp) != 3: raise Exception('ill-form assignment')
+        __, var, value = exp
+        self.variable, self.value = var, analyze(value)
 
-    def eval(self, env):
-        env.setVarValue(self.var, eval(self.value, env))
+    def __call__(self, env):
+        env.setVarValue(self.variable, self.value(env))
         return theNil
 
 
 class SExpDefinition(SExp):
-    def __init__(self, var=None, value=None):
-        self.var, self.value = var, value
+    def __init__(self, exp):
+        try:
+            if isinstance(exp[1], str):
+                __, var, value = exp
+                self.variable, self.value = var, analyze(value)
+            else:  # define function
+                if not exp[2:]: raise Exception('ill-form define')
+                lambdaExp = ('lambda', exp[1][1:]) + exp[2:]
+                self.variable, self.value = exp[1][0], SExpLambda(lambdaExp)
+        except (IndexError, ValueError):
+            raise Exception('ill-form define')
 
-    def eval(self, env):
-        env.defVar(self.var, eval(self.value, env))
+    def __call__(self, env):
+        env.defVar(self.variable, self.value(env))
         return theNil
 
 
 class SExpLambda(SExp):
-    def __init__(self, parameters=None, body=None):
-        self.parameters, self.body = parameters, body
+    def __init__(self, exp):
+        if len(exp) < 3 or not isinstance(exp[1], tuple):
+            raise Exception('ill-form lambda')
+        __, param, *body = exp
+        self.parameters, self.body = param, analyze_seq(body)
 
-    def eval(self, env):
+    def __call__(self, env):
         return SCompoundProc(self.parameters, self.body, env)
 
 
 class SExpQuote(SExp):
-    def __init__(self, datum=None):
-        self.datum = datum
-
-    def eval(self, env):
+    def __init__(self, exp):
         listMaker = lambda data: (SPair.makeList(tuple(map(listMaker, data))) if
                                   isinstance(data, tuple) else data)
-        return listMaker(self.datum)
+
+        if len(exp) != 2: raise Exception('ill-form quote')
+        __, quoted = exp
+        self.datum = listMaker(quoted)
+
+    def __call__(self, __):
+        return self.datum
 
 
 class SExpOr(SExp):
-    def __init__(self, seq=None):
-        self.seq = seq
+    def __init__(self, exp):
+        self.seq = tuple(map(analyze, exp[1:]))
 
-    def eval(self, env):
+    def __call__(self, env):
         for i in self.seq:
-            value = eval(i, env)
+            value = i(env)
             if is_true(value): return value
         return theFalse
 
 
 class SExpAnd(SExp):
-    def __init__(self, seq=None):
-        self.seq = seq
+    def __init__(self, exp):
+        self.seq = tuple(map(analyze, exp[1:]))
 
-    def eval(self, env):
+    def __call__(self, env):
         value = theFalse
         for i in self.seq:
-            value = eval(i, env)
+            value = i(env)
             if is_false(value): break
         return value
 
@@ -196,40 +219,64 @@ class SExpAnd(SExp):
 # derived expressions
 
 class SExpCond(SExp):
-    def __init__(self, clauses):
-        self.clauses = clauses
+    def __init__(self, exp):
+        try:
+            clauses = exp[1:]
+            self.body = analyze(self._expandClauses(clauses))
+        except IndexError:
+            raise Exception('ill-form cond')
 
-    def eval(self, env):
-        return eval(SExpCond._expandClauses(self.clauses), env)
+    def __call__(self, env):
+        return self.body(env)
 
     @staticmethod
     def _expandClauses(clauses):
-        """Convert COND into IF closure(?)"""
-        predicate, actions = lambda c: c[0], lambda c: c[1:]
+        """Convert COND into IF closure(?). clauses should be raw expression, and
+        return value is also raw."""
+        # _seq_to_exp makes a sequence into a expression. If seq just has one exp, return it.
+        # If seq is empty, return it.
+        seq_to_exp = lambda seq: seq and (seq[0] if len(seq) == 1 else SExpBegin(seq))
 
         if not clauses: return theFalse
         first, rest = clauses[0], clauses[1:]
+        first_predicate, first_acts = first[0], first[1:]
 
-        if predicate(first) == 'else':
+        if first_predicate == 'else':
             if rest: raise Exception('ELSE clause is not last -- COND->IF')
-            return _seq_to_exp(actions(first)) or theTrue
+            return seq_to_exp(first_acts) or theTrue
         else:
-            return SExpIf(predicate(first), _seq_to_exp(actions(first)) or theTrue,
-                          SExpCond._expandClauses(rest))
+            return ('if', first_predicate,
+                    seq_to_exp(first_acts) or theTrue,
+                    SExpCond._expandClauses(rest))
 
 
 class SExpLet(SExp):
-    def __init__(self, bounds=None, body=None):
-        self.bounds, self.body = bounds, body
+    def __init__(self, exp):
+        __, bounds, *body = exp
+        self.app = analyze(self._toCombination(bounds, tuple(body)))
 
-    def eval(self, env):
-        return eval(self._toCombination(env), env)
+    def __call__(self, env):
+        return self.app(env)
 
-    def _toCombination(self, env):
-        lam = SExpLambda(tuple(map(lambda x: x[0], self.bounds)), self.body)
-        return SExpApplication(
-            lam, tuple(map(lambda x: x[1], self.bounds)), env)
+    @staticmethod
+    def _toCombination(bounds, body):
+        lambda_exp = ('lambda', tuple(map(lambda x: x[0], bounds))) + body
+        app_exp = (lambda_exp,) + tuple(map(lambda x: x[1], bounds))
+        return app_exp
 
 
-from .core import eval, apply, eval_sequence
+special_forms = {
+    'if': SExpIf,
+    'define': SExpDefinition,
+    'set!': SExpAssignment,
+    'begin': SExpBegin,
+    'cond': SExpCond,
+    'let': SExpLet,
+    'lambda': SExpLambda,
+    'quote': SExpQuote,
+    'and': SExpAnd,
+    'or': SExpOr
+}
+
+from .core import apply, analyze, analyze_seq
 from .procedure import SCompoundProc
