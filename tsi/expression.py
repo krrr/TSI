@@ -233,20 +233,21 @@ class SExpCond(SExp):
     def _expandClauses(clauses):
         """Convert COND into IF closure(?). clauses should be raw expression, and
         return value is also raw."""
-        # _seq_to_exp makes a sequence into a expression. If seq just has one exp, return it.
-        # If seq is empty, return it.
-        seq_to_exp = lambda seq: seq and (seq[0] if len(seq) == 1 else SExpBegin(seq))
+        def seq_to_exp(seq):  # make single expression
+            if len(seq) == 0: return '#t'
+            elif len(seq) == 1: return seq[0]
+            else: return ('begin',) + seq
 
-        if not clauses: return theFalse
+        if not clauses: return '#f'
         first, rest = clauses[0], clauses[1:]
         first_predicate, first_acts = first[0], first[1:]
 
         if first_predicate == 'else':
             if rest: raise Exception('ELSE clause is not last -- COND->IF')
-            return seq_to_exp(first_acts) or theTrue
+            return seq_to_exp(first_acts)
         else:
             return ('if', first_predicate,
-                    seq_to_exp(first_acts) or theTrue,
+                    seq_to_exp(first_acts),
                     SExpCond._expandClauses(rest))
 
 

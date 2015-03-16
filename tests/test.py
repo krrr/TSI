@@ -19,6 +19,7 @@ ev(('set!', 'aa', '3'))
 assert ev(('cond', (('=', 'aa', '0'), '1'),
                     (('=', 'aa', '1'), '2'),
                     ('else', '3'))) == ev('3'), 'cond'
+assert ev(('cond', ('#t', '1'))) == ev('1'), 'cond (without else clause)'
 
 assert ev(('begin', '1', '2', '3')) == ev('3'), 'begin'
 
