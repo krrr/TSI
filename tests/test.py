@@ -47,4 +47,7 @@ assert ev('modified') == ev('0'), 'or'
 ev(('and', '1', ('aa',), '2'))
 assert ev('modified') == ev('1'), 'and'
 
+assert ev(('let', (('x', '10'), ('xx', '73')),
+          ('+', 'x', 'xx'))) == ev('83'), 'let'
+
 ev(('display', '"All tests passed, good job!"'))
