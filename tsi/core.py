@@ -7,13 +7,13 @@ is_str = lambda raw_exp: len(raw_exp) >= 2 and raw_exp[0] == '"' and raw_exp[-1]
 def analyze_seq(seq):
     """Turn a sequence of expressions into an object that is callable (just
     like any Sxx object). This is analyze-sequence in SICP."""
-    def sequential(env):
-        last = None
-        for i in analyzed: last = i(env)
-        return last
-
-    analyzed = tuple(map(analyze, seq))
-    return sequential
+    assert seq
+    if len(seq) == 1:
+        return analyze(seq[0])
+    else:
+        analyzed = tuple(map(analyze, seq))  # must done analyzing first
+        sequential = lambda env: [i(env) for i in analyzed][-1]
+        return sequential
 
 
 def analyze(exp):
