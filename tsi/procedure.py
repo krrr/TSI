@@ -2,25 +2,32 @@ from sys import exit
 from functools import reduce
 
 
-class SPrimitiveProc:
+class SProc:
+    """The base class of two kinds of procedure"""
+    def __call__(self, args):
+        """Apply the procedure with arguments (already analyzed)."""
+        raise NotImplementedError
+
+
+class SPrimitiveProc(SProc):
     def __init__(self, implement):
         self._imp = implement
 
-    def apply(self, args):
+    def __call__(self, args):
         return self._imp(args)
 
 
-class SCompoundProc:
+class SCompoundProc(SProc):
     def __init__(self, parameters, body, env):
         self.parameters = parameters
-        self.body = body
+        self.body = body  # body should already be analyzed
         self.env = env
 
     def __str__(self):
         para = ','.join(self.parameters) if self.parameters else 'none'
         return '<compound-procedure (param: %s)>' % para
 
-    def apply(self, args):
+    def __call__(self, args):
         if len(self.parameters) != len(args):
             raise Exception('Too few or too much arguments -- APPLY (%s)' % self)
         env = self.env.makeExtend(zip(self.parameters, args))

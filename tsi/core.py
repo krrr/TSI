@@ -46,8 +46,8 @@ def apply(proc, args):
     """Apply the procedure with arguments. This is execute-application
     in 4.1.7."""
     try:
-        return proc.apply(args)
-    except AttributeError:
+        return proc(args)
+    except TypeError:
         raise Exception('Unknown procedure type -- APPLY (%s)' % str(proc))
 
 
