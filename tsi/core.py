@@ -45,10 +45,10 @@ def eval(exp, env):
 def apply(proc, args):
     """Apply the procedure with arguments. This is execute-application
     in 4.1.7."""
-    try:
-        return proc(args)
-    except TypeError:
+    if not isinstance(proc, SProc):
         raise Exception('Unknown procedure type -- APPLY (%s)' % str(proc))
+    return proc(args)
 
 
 from .expression import *
+from .procedure import SProc
