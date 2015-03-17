@@ -1,8 +1,9 @@
 
 class SExp:
-    """The base class of all expression"""
+    """The base class of all expressions. Analyzing is done in constructor,
+    and it evaluate itself when called."""
     def __call__(self, env):
-        """Evaluate this expression in given environment."""
+        """Evaluate this expression in given environment and return result."""
         # be sure to return in this method!
         raise NotImplementedError
 
