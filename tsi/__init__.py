@@ -14,6 +14,6 @@ def load_file(path):
 # shortcuts
 show_err = lambda s: print(s, file=sys.stderr)
 
-from .core import eval, apply
+from .core import eval
 from .environment import setup_environment, get_global_env
 from .parser import parse

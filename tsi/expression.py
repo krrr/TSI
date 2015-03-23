@@ -3,8 +3,12 @@ class SExp:
     """The base class of all expressions. Analyzing is done in constructor,
     and it evaluate itself when called."""
     def __call__(self, env):
-        """Evaluate this expression in given environment and return result."""
-        # be sure to return in this method!
+        """Evaluate this expression in given environment and return result.
+        This method will become a generator in almost special forms (always use
+        yield in generator, ignore Py3.3's return). Yielding a EvalRequest
+        object can make eval resume us with result, solving recursion limit
+        problem."""
+        # be sure to return or yield in this method!
         raise NotImplementedError
 
 
@@ -34,6 +38,9 @@ class SNumber(SSelfEvalExp):
 
     def __str__(self):
         return str(self.num)
+
+    def __repr__(self):
+        return 'SNumber(%d)' % self.num
 
 
 class SString(SSelfEvalExp):
@@ -114,8 +121,18 @@ class SExpApplication(SExp):
         self.operands = tuple(map(analyze, operands))
 
     def __call__(self, env):
-        return apply(self.operator(env),
-                     tuple(map(lambda i: i(env), self.operands)))
+        proc = self.operator(env)
+        operands = yield EvalRequest(self.operands, env)
+        if isinstance(proc, SPrimitiveProc):
+            yield proc.apply(operands)
+        elif isinstance(proc, SCompoundProc):
+            if len(proc.parameters) != len(operands):
+                raise Exception('Too few or too much arguments -- APPLY (%s)' % str(proc))
+            new_env = proc.env.makeExtend(zip(proc.parameters, operands))
+            evaluated = yield EvalRequest(proc.body, new_env)
+            yield evaluated[-1]
+        else:
+            raise Exception('Unknown procedure type -- APPLY (%s)' % str(proc))
 
 
 class SExpIf(SExp):
@@ -126,19 +143,22 @@ class SExpIf(SExp):
         self.alternative = analyze(alter[0]) if alter else theFalse
 
     def __call__(self, env):
-        if is_true(self.predicate(env)):
-            return self.consequent(env)
+        pre = (yield EvalRequest([self.predicate], env))[0]
+        if is_true(pre):
+            cons = (yield EvalRequest([self.consequent], env))[0]
+            yield cons
         else:
-            return self.alternative(env)
+            alter = (yield EvalRequest([self.alternative], env))[0]
+            yield alter
 
 
 class SExpBegin(SExp):
     def __init__(self, exp):
         if len(exp) < 2: raise Exception('ill-from begin')
-        self.body = analyze_seq(exp[1:])
+        self.body = tuple(map(analyze, exp[1:]))
 
     def __call__(self, env):
-        return self.body(env)
+        yield (yield EvalRequest(self.body, env))[-1]
 
 
 class SExpAssignment(SExp):
@@ -148,8 +168,8 @@ class SExpAssignment(SExp):
         self.variable, self.value = var, analyze(value)
 
     def __call__(self, env):
-        env.setVarValue(self.variable, self.value(env))
-        return theNil
+        env.setVarValue(self.variable, (yield EvalRequest([self.value], env))[0])
+        yield theNil
 
 
 class SExpDefinition(SExp):
@@ -166,16 +186,16 @@ class SExpDefinition(SExp):
             raise Exception('ill-form define')
 
     def __call__(self, env):
-        env.defVar(self.variable, self.value(env))
-        return theNil
+        env.defVar(self.variable, (yield EvalRequest([self.value], env))[0])
+        yield theNil
 
 
 class SExpLambda(SExp):
     def __init__(self, exp):
         if len(exp) < 3 or not isinstance(exp[1], tuple):
             raise Exception('ill-form lambda')
-        __, param, *body = exp
-        self.parameters, self.body = param, analyze_seq(body)
+        param, *body = exp[1:]
+        self.parameters, self.body = param, tuple(map(analyze, body))
 
     def __call__(self, env):
         return SCompoundProc(self.parameters, self.body, env)
@@ -199,10 +219,11 @@ class SExpOr(SExp):
         self.seq = tuple(map(analyze, exp[1:]))
 
     def __call__(self, env):
+        value = theFalse
         for i in self.seq:
-            value = i(env)
-            if is_true(value): return value
-        return theFalse
+            value = (yield EvalRequest([i], env))[0]
+            if is_true(value): break
+        yield value
 
 
 class SExpAnd(SExp):
@@ -210,11 +231,11 @@ class SExpAnd(SExp):
         self.seq = tuple(map(analyze, exp[1:]))
 
     def __call__(self, env):
-        value = theFalse
+        value = theTrue
         for i in self.seq:
-            value = i(env)
+            value = (yield EvalRequest([i], env))[0]
             if is_false(value): break
-        return value
+        yield value
 
 
 # derived expressions
@@ -228,7 +249,7 @@ class SExpCond(SExp):
             raise Exception('ill-form cond')
 
     def __call__(self, env):
-        return self.body(env)
+        yield (yield EvalRequest([self.body], env))[0]
 
     @staticmethod
     def _expandClauses(clauses):
@@ -258,7 +279,7 @@ class SExpLet(SExp):
         self.app = analyze(self._toCombination(bounds, tuple(body)))
 
     def __call__(self, env):
-        return self.app(env)
+        yield (yield EvalRequest([self.app], env))[0]
 
     @staticmethod
     def _toCombination(bounds, body):
@@ -280,5 +301,5 @@ special_forms = {
     'or': SExpOr
 }
 
-from .core import apply, analyze, analyze_seq
-from .procedure import SCompoundProc
+from .core import analyze, EvalRequest
+from .procedure import SCompoundProc, SPrimitiveProc

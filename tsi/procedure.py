@@ -4,9 +4,6 @@ from functools import reduce
 
 class SProc:
     """The base class of two kinds of procedure"""
-    def __call__(self, args):
-        """Apply the procedure with arguments (already analyzed)."""
-        raise NotImplementedError
 
 
 class SPrimitiveProc(SProc):
@@ -17,7 +14,7 @@ class SPrimitiveProc(SProc):
     def __str__(self):
         return '<primitive-procedure (%s)>' % self.name
 
-    def __call__(self, args):
+    def apply(self, args):
         try:
             return self._imp(args)
         except Exception as e:  # add name after message
@@ -33,12 +30,6 @@ class SCompoundProc(SProc):
     def __str__(self):
         para = ','.join(self.parameters) if self.parameters else 'none'
         return '<compound-procedure (param: %s)>' % para
-
-    def __call__(self, args):
-        if len(self.parameters) != len(args):
-            raise Exception('Too few or too much arguments -- APPLY (%s)' % self)
-        env = self.env.makeExtend(zip(self.parameters, args))
-        return self.body(env)
 
 
 prim_proc_name_obj_pairs = lambda: _prim_implements.items()
