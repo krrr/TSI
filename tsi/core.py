@@ -38,7 +38,7 @@ class EvalRequest:
         self.caller = None
 
 
-def eval(exp, env):
+def eval_internal(exp, env):
     """The eval, but only EvalRequest handled here. This part is aimed only to
     break Python's recursion limit. And rest part is handled in Sxx.__call__."""
     # sys.setrecursionlimit wins if we can set stack limit of interpreter...
@@ -82,6 +82,16 @@ def eval(exp, env):
                 ret = gen_or_value
     assert len(env_stack) == 1
     return ret
+
+
+def eval(exp, env):
+    try:
+        return eval_internal(exp, env)
+    except Exception:
+        SExpApplication.printStackTrace()
+        raise
+    finally:
+        SExpApplication.callStack.clear()
 
 
 # apply still alive, it's hiding in SExpApplication

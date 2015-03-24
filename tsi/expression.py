@@ -1,3 +1,5 @@
+from collections import deque
+
 
 class SExp:
     """The base class of all expressions. Analyzing is done in constructor,
@@ -115,24 +117,49 @@ class SExpVariable(SExp):
 
 
 class SExpApplication(SExp):
+    callStack = deque()  # only for compound procedure
+
     def __init__(self, exp):
         operator, *operands = exp
         self.operator = analyze(operator)
         self.operands = tuple(map(analyze, operands))
 
     def __call__(self, env):
+        """The apply."""
+        # prevent eliminating (return proc, operands) while evaluating operands
+        self.callStack.append(None)
         proc = self.operator(env)
         operands = yield EvalRequest(self.operands, env)
+        self.callStack.pop()
+
         if isinstance(proc, SPrimitiveProc):
             yield proc.apply(operands)
         elif isinstance(proc, SCompoundProc):
             if len(proc.parameters) != len(operands):
                 raise Exception('Too few or too much arguments -- APPLY (%s)' % str(proc))
-            new_env = proc.env.makeExtend(zip(proc.parameters, operands))
-            evaluated = yield EvalRequest(proc.body, new_env)
-            yield evaluated[-1]
+            # only eliminate tail recursion, not all tail-call
+            if self.callStack and proc is self.callStack[-1]:
+                yield proc, operands
+            else:
+                self.callStack.append(proc)
+                while True:
+                    new_env = proc.env.makeExtend(zip(proc.parameters, operands))
+                    last = (yield EvalRequest(proc.body, new_env))[-1]
+                    if not isinstance(last, tuple): break
+                    proc, operands = last
+                self.callStack.pop()
+                yield last
         else:
             raise Exception('Unknown procedure type -- APPLY (%s)' % str(proc))
+
+    @classmethod
+    def printStackTrace(cls):
+        print('StackTrace:')
+        print('  Global Environment')
+        for i in filter(None, cls.callStack):
+            # when evaluating operands of a procedure, we got None in stack
+            print('  %s' % str(i))
+        print()
 
 
 class SExpIf(SExp):

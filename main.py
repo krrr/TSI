@@ -6,7 +6,7 @@ from tsi import eval, setup_environment, parse, load_file, show_err
 from tsi.expression import theNil
 from tsi import __version__
 
-DEBUG = True
+DEBUG = False
 
 
 def read():
