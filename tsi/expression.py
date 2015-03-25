@@ -38,40 +38,43 @@ class SNumber(SSelfEvalExp):
             raise NotImplementedError
         return self.num < other.num
 
-    def __str__(self):
-        return str(self.num)
+    def __str__(self): return str(self.num)
 
-    def __repr__(self):
-        return 'SNumber(%d)' % self.num
+    def __repr__(self): return 'SNumber(%d)' % self.num
 
 
 class SString(SSelfEvalExp):
     def __init__(self, exp):
         self.string = exp[1:-1]
 
-    def __str__(self):
-        return self.string
+    def __str__(self): return self.string
 
 
 class STrue(SNumber):
     def __init__(self):
         super(STrue, self).__init__(1)
 
-    def __str__(self):
-        return '#t'
+    def __str__(self): return '#t'
 
 
 class SFalse(SNumber):
     def __init__(self):
         super(SFalse, self).__init__(0)
 
-    def __str__(self):
-        return '#f'
+    def __str__(self): return '#f'
+
+
+class SSymbol(SExp):
+    def __init__(self, exp):
+        self.name = exp
+
+    def __call__(self, env): return env.getVarValue(self.name)
+
+    def __str__(self): return self.name
 
 
 class SNil(SObject):
-    def __str__(self):
-        return "()"
+    def __str__(self): return "()"
 
 
 class SPair(SObject):
@@ -107,14 +110,6 @@ theTrue, theFalse, theNil = STrue(), SFalse(), SNil()
 
 
 # special forms
-
-class SExpVariable(SExp):
-    def __init__(self, exp):
-        self.name = exp
-
-    def __call__(self, env):
-        return env.getVarValue(self.name)
-
 
 class SExpApplication(SExp):
     callStack = deque()  # only for compound procedure

@@ -143,6 +143,7 @@ prim_proc_name_imp = (
     # is
     ('null?', SPrimitiveProc(_gen_prim_is(lambda x: x is theNil))),
     ('pair?', SPrimitiveProc(_gen_prim_is(lambda x: isinstance(x, SPair)))),
+    ('symbol?', SPrimitiveProc(_gen_prim_is(lambda x: isinstance(x, SSymbol)))),
     # system
     ('load', SPrimitiveProc(_prim_load)),
     ('exit', SPrimitiveProc(lambda __: exit(0))),

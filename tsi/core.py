@@ -16,7 +16,7 @@ def analyze(exp):
         elif is_str(exp):
             return SString(exp)
         else:
-            return SExpVariable(exp)
+            return SSymbol(exp)  # treat symbol as variable
     elif isinstance(exp, tuple) and exp:
         name = exp[0]
         if name in special_forms:
