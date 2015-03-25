@@ -32,9 +32,6 @@ class SCompoundProc(SProc):
         return '<compound-procedure (param: %s)>' % para
 
 
-prim_proc_name_obj_pairs = lambda: _prim_implements.items()
-
-
 def _prim_add(args):
     if len(args) == 0:
         raise Exception('Too few arguments')
@@ -122,40 +119,40 @@ def _prim_load(args):
     return theNil
 
 
-_prim_implements = {
+prim_proc_name_imp = (
     # arithmetic
-    '+': SPrimitiveProc(_prim_add),
-    '-': SPrimitiveProc(_prim_sub),
-    '*': SPrimitiveProc(_prim_mul),
-    '/': SPrimitiveProc(_prim_div),
-    '<': SPrimitiveProc(_gen_prim_cmp(lambda x, y: x < y)),
-    '<=': SPrimitiveProc(_gen_prim_cmp(lambda x, y: x <= y)),
-    '=': SPrimitiveProc(_gen_prim_cmp(lambda x, y: x == y)),
-    '>': SPrimitiveProc(_gen_prim_cmp(lambda x, y: x > y)),
-    '>=': SPrimitiveProc(_gen_prim_cmp(lambda x, y: x >= y)),
+    ('+', SPrimitiveProc(_prim_add)),
+    ('-', SPrimitiveProc(_prim_sub)),
+    ('*', SPrimitiveProc(_prim_mul)),
+    ('/', SPrimitiveProc(_prim_div)),
+    ('<', SPrimitiveProc(_gen_prim_cmp(lambda x, y: x < y))),
+    ('<=', SPrimitiveProc(_gen_prim_cmp(lambda x, y: x <= y))),
+    ('=', SPrimitiveProc(_gen_prim_cmp(lambda x, y: x == y))),
+    ('>', SPrimitiveProc(_gen_prim_cmp(lambda x, y: x > y))),
+    ('>=', SPrimitiveProc(_gen_prim_cmp(lambda x, y: x >= y))),
 
-    'not': SPrimitiveProc(_prim_not),
+    ('not', SPrimitiveProc(_prim_not)),
     # pair & list
-    'cons': SPrimitiveProc(_prim_cons),
-    'car': SPrimitiveProc(_gen_pair_dr(lambda p: p.car)),
-    'cdr': SPrimitiveProc(_gen_pair_dr(lambda p: p.cdr)),
-    'cddr': SPrimitiveProc(_gen_pair_dr(lambda p: p.cdr.cdr)),
-    'cadr': SPrimitiveProc(_gen_pair_dr(lambda p: p.cdr.car)),
-    'caddr': SPrimitiveProc(_gen_pair_dr(lambda p: p.cdr.cdr.car)),
-    'list': SPrimitiveProc(_prim_list),
+    ('cons', SPrimitiveProc(_prim_cons)),
+    ('car', SPrimitiveProc(_gen_pair_dr(lambda p: p.car))),
+    ('cdr', SPrimitiveProc(_gen_pair_dr(lambda p: p.cdr))),
+    ('cddr', SPrimitiveProc(_gen_pair_dr(lambda p: p.cdr.cdr))),
+    ('cadr', SPrimitiveProc(_gen_pair_dr(lambda p: p.cdr.car))),
+    ('caddr', SPrimitiveProc(_gen_pair_dr(lambda p: p.cdr.cdr.car))),
+    ('list', SPrimitiveProc(_prim_list)),
     # is
-    'null?': SPrimitiveProc(_gen_prim_is(lambda x: x is theNil)),
-    'pair?': SPrimitiveProc(_gen_prim_is(lambda x: isinstance(x, SPair))),
+    ('null?', SPrimitiveProc(_gen_prim_is(lambda x: x is theNil))),
+    ('pair?', SPrimitiveProc(_gen_prim_is(lambda x: isinstance(x, SPair)))),
     # system
-    'load': SPrimitiveProc(_prim_load),
-    'exit': SPrimitiveProc(lambda __: exit(0)),
+    ('load', SPrimitiveProc(_prim_load)),
+    ('exit', SPrimitiveProc(lambda __: exit(0))),
     # maybe below can be moved to scm library file
-    'display': SPrimitiveProc(_prim_display),
-    'newline': SPrimitiveProc(_prim_newline),
-}
+    ('display', SPrimitiveProc(_prim_display)),
+    ('newline', SPrimitiveProc(_prim_newline)),
+)
 
 # register names
-for _n, _p in _prim_implements.items(): _p.name = _n
+for _n, _p in prim_proc_name_imp: _p.name = _n
 
 from . import load_file
 from .expression import *

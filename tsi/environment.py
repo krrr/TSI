@@ -40,7 +40,7 @@ def setup_environment():
     """Setup a global environment"""
     global _global_env
     env = _global_env = SEnvironment()
-    env.extend(prim_proc_name_obj_pairs())
+    env.extend(prim_proc_name_imp)
     env.extend((('true', theTrue), ('false', theFalse), ('#t', theTrue),
                ('#f', theFalse), ('nil', theNil)))
     # load stdlib
@@ -53,4 +53,4 @@ _global_env = None
 
 from . import load_file
 from .expression import theTrue, theFalse, theNil
-from .procedure import prim_proc_name_obj_pairs
+from .procedure import prim_proc_name_imp
