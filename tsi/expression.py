@@ -136,7 +136,8 @@ class SExpApplication(SExp):
             yield proc.apply(operands)
         elif isinstance(proc, SCompoundProc):
             if len(proc.parameters) != len(operands):
-                raise Exception('Too few or too much arguments -- APPLY (%s)' % str(proc))
+                raise Exception('%d args expected, got %d -- APPLY (%s)'
+                                % (len(proc.parameters), len(operands), str(proc)))
             # only eliminate tail recursion, not all tail-call
             if self.callStack and proc is self.callStack[-1]:
                 yield proc, operands
@@ -165,18 +166,16 @@ class SExpApplication(SExp):
 class SExpIf(SExp):
     def __init__(self, exp):
         if not 3 <= len(exp) <= 4: raise Exception('ill-form if')
-        __, pre, con, *alter = exp
+        pre, con, *alter = exp[1:]
         self.predicate, self.consequent = analyze(pre), analyze(con)
         self.alternative = analyze(alter[0]) if alter else theFalse
 
     def __call__(self, env):
-        pre = (yield EvalRequest([self.predicate], env))[0]
-        if is_true(pre):
-            cons = (yield EvalRequest([self.consequent], env))[0]
-            yield cons
+        predicate = (yield EvalRequest([self.predicate], env))[0]
+        if is_true(predicate):
+            yield (yield EvalRequest([self.consequent], env))[0]
         else:
-            alter = (yield EvalRequest([self.alternative], env))[0]
-            yield alter
+            yield (yield EvalRequest([self.alternative], env))[0]
 
 
 class SExpBegin(SExp):
@@ -191,7 +190,7 @@ class SExpBegin(SExp):
 class SExpAssignment(SExp):
     def __init__(self, exp):
         if len(exp) != 3: raise Exception('ill-form assignment')
-        __, var, value = exp
+        var, value = exp[1:]
         self.variable, self.value = var, analyze(value)
 
     def __call__(self, env):
@@ -203,7 +202,7 @@ class SExpDefinition(SExp):
     def __init__(self, exp):
         try:
             if isinstance(exp[1], str):
-                __, var, value = exp
+                var, value = exp[1:]
                 self.variable, self.value = var, analyze(value)
             else:  # define function
                 if not exp[2:]: raise Exception('ill-form define')
@@ -234,8 +233,7 @@ class SExpQuote(SExp):
                                   isinstance(data, tuple) else data)
 
         if len(exp) != 2: raise Exception('ill-form quote')
-        __, quoted = exp
-        self.datum = listMaker(quoted)
+        self.datum = listMaker(exp[1])
 
     def __call__(self, __):
         return self.datum
@@ -302,8 +300,11 @@ class SExpCond(SExp):
 
 class SExpLet(SExp):
     def __init__(self, exp):
-        __, bounds, *body = exp
-        self.app = analyze(self._toCombination(bounds, tuple(body)))
+        try:
+            bounds, *body = exp[1:]
+            self.app = analyze(self._toCombination(bounds, tuple(body)))
+        except (IndexError, ValueError):
+            raise Exception('ill-form let')
 
     def __call__(self, env):
         yield (yield EvalRequest([self.app], env))[0]
