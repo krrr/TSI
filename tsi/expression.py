@@ -224,14 +224,16 @@ class SExpLambda(SExp):
 
 class SExpQuote(SExp):
     def __init__(self, exp):
-        listMaker = lambda data: (SPair.makeList(tuple(map(listMaker, data))) if
-                                  isinstance(data, tuple) else data)
-
         if len(exp) != 2: raise Exception('ill-form quote')
-        self.datum = listMaker(exp[1])
+        self.datum = self.walker(exp[1])
 
-    def __call__(self, __):
-        return self.datum
+    def __call__(self, __): return self.datum
+
+    @staticmethod
+    def walker(data):
+        # return a list that contains list or self-eval expressions
+        return (SPair.makeList(tuple(map(SExpQuote.walker, data)))
+                if isinstance(data, tuple) else analyze(data))
 
 
 class SExpOr(SExp):
@@ -324,5 +326,33 @@ special_forms = {
     'or': SExpOr
 }
 
-from .core import analyze, EvalRequest
+# analyzing
+
+is_int = lambda raw_exp: (raw_exp.isnumeric() or
+                          (raw_exp.startswith('-') and raw_exp[1:].isnumeric()))
+is_str = lambda raw_exp: len(raw_exp) >= 2 and raw_exp[0] == '"' and raw_exp[-1] == '"'
+
+
+def analyze(exp):
+    """This procedure make syntax analyzing and turn raw expression into
+    Sxx object which will then called by EVAL. Every Sxx object knows how to
+    check its own syntax and to evaluate itself."""
+    if isinstance(exp, str) and exp:
+        if is_int(exp):
+            return SNumber(exp)
+        elif is_str(exp):
+            return SString(exp)
+        else:
+            return SSymbol(exp)  # treat symbol as variable
+    elif isinstance(exp, tuple) and exp:
+        name = exp[0]
+        if name in special_forms:
+            return special_forms[name](exp)
+        else:
+            # exp can only be application
+            return SExpApplication(exp)
+    raise Exception('Unknown expression type -- ANALYZE (%s)' % str(exp))
+
+
+from .core import EvalRequest
 from .procedure import SCompoundProc, SPrimitiveProc

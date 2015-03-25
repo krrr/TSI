@@ -1,31 +1,6 @@
 from collections import deque
 from types import GeneratorType
 
-is_int = lambda raw_exp: (raw_exp.isnumeric() or
-                          (raw_exp.startswith('-') and raw_exp[1:].isnumeric()))
-is_str = lambda raw_exp: len(raw_exp) >= 2 and raw_exp[0] == '"' and raw_exp[-1] == '"'
-
-
-def analyze(exp):
-    """This procedure make syntax analyzing and turn raw expression into
-    Sxx object which will then called by EVAL. Every Sxx object knows how to
-    check its own syntax and to evaluate itself."""
-    if isinstance(exp, str) and exp:
-        if is_int(exp):
-            return SNumber(exp)
-        elif is_str(exp):
-            return SString(exp)
-        else:
-            return SSymbol(exp)  # treat symbol as variable
-    elif isinstance(exp, tuple) and exp:
-        name = exp[0]
-        if name in special_forms:
-            return special_forms[name](exp)
-        else:
-            # exp can only be application
-            return SExpApplication(exp)
-    raise Exception('Unknown expression type -- ANALYZE (%s)' % str(exp))
-
 
 class EvalRequest:
     """Yielding instance of this class (only in some xx.__call__) to let
@@ -96,4 +71,4 @@ def eval(exp, env):
 
 # apply still alive, it's hiding in SExpApplication
 
-from .expression import *
+from .expression import SExpApplication, analyze
