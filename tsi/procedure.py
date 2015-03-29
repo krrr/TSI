@@ -33,15 +33,13 @@ class SCompoundProc(SProc):
 
 
 def _prim_add(args):
-    if len(args) == 0:
-        raise Exception('Too few arguments')
+    if len(args) == 0: raise Exception('Too few arguments')
     return SNumber(sum(map(lambda num: num.num, args)))
 
 
 def _prim_sub(args):
-    if len(args) == 0:
-        raise Exception('Too few arguments')
-    elif len(args) == 1:
+    if len(args) == 0: raise Exception('Too few arguments')
+    if len(args) == 1:
         return SNumber(-args[0].num)
     else:
         n = args[0].num - sum(map(lambda num: num.num, args[1:]))
@@ -58,7 +56,8 @@ def _prim_div(args):
 
 
 def _prim_display(args):
-    for i in args: print(i)
+    if len(args) != 1: raise Exception('Only support one argument currently')
+    print(args[0], end='')
     return theNil
 
 
