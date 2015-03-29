@@ -261,6 +261,7 @@ class SExpAnd(SExp):
 
 
 # derived expressions
+# And and Or can be derived (using If)
 
 class SExpCond(SExp):
     def __init__(self, exp):

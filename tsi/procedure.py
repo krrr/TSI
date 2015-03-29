@@ -99,6 +99,7 @@ def _prim_cons(args):
 
 
 def _gen_pair_dr(op):
+    """Used to generate shortcuts like cadr."""
     def template(args):
         try:
             return op(args[0])

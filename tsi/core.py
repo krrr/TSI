@@ -4,7 +4,7 @@ from types import GeneratorType
 
 class EvalRequest:
     """Yielding instance of this class (only in some xx.__call__) to let
-    eval evaluate some expressions. After done evaluation we send it back."""
+    eval evaluate some expressions. After done evaluation we send result back."""
     def __init__(self, seq, env):
         assert isinstance(seq, (list, tuple))  # seq can be empty
         self.seq = list(seq)
