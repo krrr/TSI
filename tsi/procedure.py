@@ -16,7 +16,13 @@ class SPrimitiveProc(SProc):
 
     def apply(self, args):
         try:
-            return self._imp(args)
+            return self._imp(*args)
+        except TypeError as e:  # wrong number of args
+            # a trick: use Python's error message
+            msg = str(e).split()
+            assert msg[1] in ('takes', 'missing')
+            msg = tuple(filter(lambda x: x != 'positional', msg))
+            raise Exception('%s %s' % (self.name, ' '.join(msg[1:])))
         except Exception as e:  # add name after message
             raise Exception('%s -- %s' % (str(e), self.name))
 
@@ -32,12 +38,12 @@ class SCompoundProc(SProc):
         return '<compound-procedure (param: %s)>' % para
 
 
-def _prim_add(args):
+def _prim_add(*args):
     if len(args) == 0: raise Exception('Too few arguments')
     return SNumber(sum(map(lambda num: num.num, args)))
 
 
-def _prim_sub(args):
+def _prim_sub(*args):
     if len(args) == 0: raise Exception('Too few arguments')
     if len(args) == 1:
         return SNumber(-args[0].num)
@@ -46,35 +52,32 @@ def _prim_sub(args):
         return SNumber(n)
 
 
-def _prim_mul(args):
+def _prim_mul(*args):
     n = reduce(lambda x, y: x * y, map(lambda num: num.num, args))
     return SNumber(n)
 
 
-def _prim_div(args):
+def _prim_div(*args):
     raise NotImplementedError('not done yet')
 
 
-def _prim_display(args):
-    if len(args) != 1: raise Exception('Only support one argument currently')
-    print(args[0], end='')
+def _prim_display(obj):
+    print(obj, end='')
     return theNil
 
 
-def _prim_newline(_):
+def _prim_newline():
     print()
     return theNil
 
 
-def _prim_not(args):
-    if len(args) != 1:
-        raise Exception('Wrong number of arguments')
-    return theFalse if is_true(args[0]) else theTrue
+def _prim_not(obj):
+    return theFalse if is_true(obj) else theTrue
 
 
 def _gen_prim_cmp(cmp):
     """Used to generate primitive procedures <, <=, =, >, >="""
-    def template(args):
+    def template(*args):
         if len(args) < 2: raise Exception('Too few arguments')
         for x, y in zip(args, args[1:]):
             if not cmp(x, y): return theFalse
@@ -84,38 +87,34 @@ def _gen_prim_cmp(cmp):
 
 
 def _gen_prim_is(test):
-    def template(args):
-        if len(args) != 1: raise Exception('1 argument expected')
-        return theTrue if test(args[0]) else theFalse
+    def template(obj):
+        return theTrue if test(obj) else theFalse
 
     return template
 
 
-def _prim_cons(args):
-    if len(args) != 2:
-        raise Exception('2 arguments expected')
-    return SPair(*args)
+def _prim_cons(car, cdr):
+    return SPair(car, cdr)
 
 
 def _gen_pair_dr(op):
     """Used to generate shortcuts like cadr."""
-    def template(args):
+    def template(pair):
         try:
-            return op(args[0])
-        except (IndexError, AttributeError):
+            return op(pair)
+        except AttributeError:
             raise Exception('a pair expected')
 
     return template
 
 
-def _prim_list(args):
-    return SPair(args[0], _prim_list(args[1:])) if args else theNil
+def _prim_list(*args):
+    return SPair(args[0], _prim_list(*args[1:])) if args else theNil
 
 
-def _prim_load(args):
-    if len(args) != 1 or not isinstance(args[0], SString):
-        raise Exception('Wrong argument. A string expected')
-    load_file(args[0].string)
+def _prim_load(s):
+    if not isinstance(s, SString): raise Exception('A string expected')
+    load_file(s.string)
     return theNil
 
 
