@@ -76,7 +76,7 @@ def _prim_not(obj):
 
 
 def _gen_prim_cmp(cmp):
-    """Used to generate primitive procedures <, <=, =, >, >="""
+    """Used to generate <, <=, =, >, >="""
     def template(*args):
         if len(args) < 2: raise Exception('Too few arguments')
         for x, y in zip(args, args[1:]):
@@ -87,10 +87,8 @@ def _gen_prim_cmp(cmp):
 
 
 def _gen_prim_is(test):
-    def template(obj):
-        return theTrue if test(obj) else theFalse
-
-    return template
+    """Used to generate is tests like symbol?"""
+    return lambda x: theTrue if test(x) else theFalse
 
 
 def _prim_cons(car, cdr):

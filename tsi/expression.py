@@ -98,12 +98,8 @@ class SPair(SObject):
         return SPair(seq[0], SPair.makeList(seq[1:])) if seq else theNil
 
 
-def is_true(exp):
-    return not is_false(exp)
-
-
-def is_false(exp):
-    return exp is theFalse
+is_true = lambda exp: exp is not theFalse
+is_false = lambda exp: exp is theFalse
 
 
 theTrue, theFalse, theNil = STrue(), SFalse(), SNil()
