@@ -2,10 +2,10 @@
 # A toy Scheme interpreter, it's well-structured(?) and with many documents.
 # I will stop before it exceed 1000 lines of code...
 import sys
+import os
 from traceback import print_exc
-from tsi import eval, setup_environment, parse, load_file, show_err
+from tsi import eval, setup_environment, parse, load_file, show_err, __version__
 from tsi.expression import theNil
-from tsi import __version__
 
 DEBUG = False
 
@@ -41,6 +41,7 @@ def driver_loop():
 
 
 if __name__ == '__main__':
+    sys.path.append(os.getcwd())  # for finding extension module
     the_global_env = setup_environment()
     if len(sys.argv) > 1:
         load_file(sys.argv[1])

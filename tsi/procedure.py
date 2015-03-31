@@ -7,9 +7,9 @@ class SProc:
 
 
 class SPrimitiveProc(SProc):
-    def __init__(self, implement):
+    def __init__(self, implement, name=None):
         self._imp = implement
-        self.name = None
+        self.name = name
 
     def __str__(self):
         return '<primitive-procedure (%s)>' % self.name
@@ -116,6 +116,16 @@ def _prim_load(s):
     return theNil
 
 
+def _prim_load_ext(s):
+    """Load a extension module written in Python."""
+    if not isinstance(s, SString): raise Exception('A string expected')
+    ext = __import__(str(s))
+    if not hasattr(ext, 'tsi_ext_flag'): raise Exception('Wrong extension name')
+    # TODO: not use global env
+    ext.setup(get_global_env())
+    return theNil
+
+
 prim_proc_name_imp = (
     # arithmetic
     ('+', SPrimitiveProc(_prim_add)),
@@ -143,7 +153,8 @@ prim_proc_name_imp = (
     ('symbol?', SPrimitiveProc(_gen_prim_is(lambda x: isinstance(x, SSymbol)))),
     # system
     ('load', SPrimitiveProc(_prim_load)),
-    ('exit', SPrimitiveProc(lambda __: exit(0))),
+    ('load-ext', SPrimitiveProc(_prim_load_ext)),
+    ('exit', SPrimitiveProc(lambda: exit(0))),
     # maybe below can be moved to scm library file
     ('display', SPrimitiveProc(_prim_display)),
     ('newline', SPrimitiveProc(_prim_newline)),
@@ -154,3 +165,4 @@ for _n, _p in prim_proc_name_imp: _p.name = _n
 
 from . import load_file
 from .expression import *
+from .environment import get_global_env
