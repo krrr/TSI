@@ -28,15 +28,16 @@ class SNumber(SSelfEvalExp):
         self.num = int(exp)
 
     def __eq__(self, other):
+        if not isinstance(other, SNumber): raise TypeError('number expected')
         return isinstance(other, SNumber) and self.num == other.num
 
-    def __ne__(self, other):
-        return not isinstance(other, SNumber) or self.num != other.num
-
     def __lt__(self, other):
-        if not isinstance(other, SNumber):
-            raise NotImplementedError
+        if not isinstance(other, SNumber): raise TypeError('number expected')
         return self.num < other.num
+
+    def __le__(self, other):
+        if not isinstance(other, SNumber): raise TypeError('number expected')
+        return self.num <= other.num
 
     def __str__(self): return str(self.num)
 
