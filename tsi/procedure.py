@@ -20,7 +20,7 @@ class SPrimitiveProc(SProc):
         except TypeError as e:  # wrong number of args
             # a trick: use Python's error message
             msg = str(e).split()
-            assert msg[1] in ('takes', 'missing')
+            if not (len(msg) > 1 and msg[1] in ('takes', 'missing')): raise
             msg = tuple(filter(lambda x: x != 'positional', msg))
             raise Exception('%s %s' % (self.name, ' '.join(msg[1:])))
         except Exception as e:  # add name after message
