@@ -40,25 +40,23 @@ class SCompoundProc(SProc):
 
 def _prim_add(*args):
     if len(args) == 0: raise Exception('Too few arguments')
-    return SNumber(sum(map(lambda num: num.num, args)))
+    return SNumber(sum(args))
 
 
 def _prim_sub(*args):
     if len(args) == 0: raise Exception('Too few arguments')
     if len(args) == 1:
-        return SNumber(-args[0].num)
+        return SNumber(-args[0])
     else:
-        n = args[0].num - sum(map(lambda num: num.num, args[1:]))
-        return SNumber(n)
+        return SNumber(args[0] - sum(args[1:]))
 
 
 def _prim_mul(*args):
-    n = reduce(lambda x, y: x * y, map(lambda num: num.num, args))
-    return SNumber(n)
+    return SNumber(reduce(lambda x, y: x * y, args))
 
 
 def _prim_div(*args):
-    raise NotImplementedError('not done yet')
+    return SNumber(reduce(lambda x, y: x / y, args))
 
 
 def _prim_display(obj):
@@ -151,6 +149,8 @@ prim_proc_name_imp = (
     ('null?', SPrimitiveProc(_gen_prim_is(lambda x: x is theNil))),
     ('pair?', SPrimitiveProc(_gen_prim_is(lambda x: isinstance(x, SPair)))),
     ('symbol?', SPrimitiveProc(_gen_prim_is(lambda x: isinstance(x, SSymbol)))),
+    ('number?', SPrimitiveProc(_gen_prim_is(lambda x: isinstance(x, SNumber)))),
+    ('integer?', SPrimitiveProc(_gen_prim_is(lambda x: isinstance(x, SInteger)))),
     # system
     ('load', SPrimitiveProc(_prim_load)),
     ('load-ext', SPrimitiveProc(_prim_load_ext)),

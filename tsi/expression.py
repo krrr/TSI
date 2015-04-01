@@ -24,24 +24,21 @@ class SSelfEvalExp(SExp):
 
 
 class SNumber(SSelfEvalExp):
-    def __init__(self, exp):
-        self.num = int(exp)
+    def __new__(cls, n):
+        if isinstance(n, int):
+            return SInteger(n)
+        elif isinstance(n, float):
+            return SReal(n)
+        else:  # n is raw expression
+            return SInteger(int(n)) if is_int(n) else SReal(float(n))
 
-    def __eq__(self, other):
-        if not isinstance(other, SNumber): raise TypeError('number expected')
-        return isinstance(other, SNumber) and self.num == other.num
+    def __repr__(self): return 'SNumber(%d)' % self
 
-    def __lt__(self, other):
-        if not isinstance(other, SNumber): raise TypeError('number expected')
-        return self.num < other.num
 
-    def __le__(self, other):
-        if not isinstance(other, SNumber): raise TypeError('number expected')
-        return self.num <= other.num
+class SInteger(int, SNumber): pass
 
-    def __str__(self): return str(self.num)
 
-    def __repr__(self): return 'SNumber(%d)' % self.num
+class SReal(float, SNumber): pass
 
 
 class SString(SSelfEvalExp):
@@ -51,17 +48,11 @@ class SString(SSelfEvalExp):
     def __str__(self): return self.string
 
 
-class STrue(SNumber):
-    def __init__(self):
-        super(STrue, self).__init__(1)
-
+class STrue(SSelfEvalExp):
     def __str__(self): return '#t'
 
 
-class SFalse(SNumber):
-    def __init__(self):
-        super(SFalse, self).__init__(0)
-
+class SFalse(SSelfEvalExp):
     def __str__(self): return '#f'
 
 
@@ -336,9 +327,11 @@ def analyze(exp):
     Sxx object which will then called by EVAL. Every Sxx object knows how to
     check its own syntax and to evaluate itself."""
     if isinstance(exp, str) and exp:
-        if is_int(exp):
+        try:
             return SNumber(exp)
-        elif is_str(exp):
+        except ValueError:
+            pass
+        if is_str(exp):
             return SString(exp)
         else:
             return SSymbol(exp)  # treat symbol as variable
