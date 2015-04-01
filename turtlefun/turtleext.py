@@ -16,9 +16,6 @@ def setup(env):
     env.extend(pairs)
 
 
-_turtle_screen_on = False
-
-
 def _get_int(obj):
     if not isinstance(obj, SNumber): raise ValueError('number expected')
     return obj.num
