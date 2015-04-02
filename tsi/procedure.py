@@ -162,6 +162,7 @@ prim_proc_name_imp = (
     ('load-ext', SPrimitiveProc(_prim_load_ext)),
     ('exit', SPrimitiveProc(lambda: sys.exit(0))),
     ('display', SPrimitiveProc(_prim_display)),
+    ('print', SPrimitiveProc(lambda *args: print(*args))),
     ('newline', SPrimitiveProc(_prim_newline)),
 )
 
