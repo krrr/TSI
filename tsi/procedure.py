@@ -1,5 +1,6 @@
-from sys import exit
+import sys
 from functools import reduce
+import math
 
 
 class SProc:
@@ -60,7 +61,9 @@ def _prim_div(*args):
 
 
 def _prim_display(obj):
-    print(obj, end='')
+    # avoid message not showing when using print(o, end='')
+    sys.stdout.write(str(obj))
+    sys.stdout.flush()
     return theNil
 
 
@@ -135,6 +138,7 @@ prim_proc_name_imp = (
     ('=', SPrimitiveProc(_gen_prim_cmp(lambda x, y: x == y))),
     ('>', SPrimitiveProc(_gen_prim_cmp(lambda x, y: x > y))),
     ('>=', SPrimitiveProc(_gen_prim_cmp(lambda x, y: x >= y))),
+    ('modulo', SPrimitiveProc(lambda x, y: x % y)),
 
     ('not', SPrimitiveProc(_prim_not)),
     # pair & list
@@ -147,15 +151,16 @@ prim_proc_name_imp = (
     ('list', SPrimitiveProc(_prim_list)),
     # is
     ('null?', SPrimitiveProc(_gen_prim_is(lambda x: x is theNil))),
+    ('boolean?', SPrimitiveProc(_gen_prim_is(lambda x: x in [theTrue, theFalse]))),
     ('pair?', SPrimitiveProc(_gen_prim_is(lambda x: isinstance(x, SPair)))),
     ('symbol?', SPrimitiveProc(_gen_prim_is(lambda x: isinstance(x, SSymbol)))),
     ('number?', SPrimitiveProc(_gen_prim_is(lambda x: isinstance(x, SNumber)))),
     ('integer?', SPrimitiveProc(_gen_prim_is(lambda x: isinstance(x, SInteger)))),
+    ('real?', SPrimitiveProc(_gen_prim_is(lambda x: isinstance(x, SReal)))),
     # system
     ('load', SPrimitiveProc(_prim_load)),
     ('load-ext', SPrimitiveProc(_prim_load_ext)),
-    ('exit', SPrimitiveProc(lambda: exit(0))),
-    # maybe below can be moved to scm library file
+    ('exit', SPrimitiveProc(lambda: sys.exit(0))),
     ('display', SPrimitiveProc(_prim_display)),
     ('newline', SPrimitiveProc(_prim_newline)),
 )
