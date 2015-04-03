@@ -1,3 +1,9 @@
+import re
+
+# first two match parentheses, the third match string like "www www", the last
+# match the rest (symbol)
+_tokenize = re.compile(r'\(|\)|"[^"]*"|[^\(\)\s"]+')
+
 
 def parse(s, multi_exp=False):
     """Parse the string that contains scheme expression. Multiple expressions
@@ -23,11 +29,10 @@ def parse(s, multi_exp=False):
             return 'quote', read_from_tokens(tokens)
         else:  # atom may starts with "'"
             return ('quote', token[1:]) if token.startswith("'") else token
-    tokenize = lambda s: s.replace('(', ' ( ').replace(')', ' ) ').split()
 
     if not multi_exp and not s:
         raise ValueError('Nothing to parse')
-    tokens = tokenize('(%s)' % s if multi_exp else s)
+    tokens = _tokenize.findall('(%s)' % s if multi_exp else s)
     try:
         ret = read_from_tokens(tokens)
     except IndexError:

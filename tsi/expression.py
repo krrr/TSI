@@ -1,3 +1,4 @@
+import re
 from collections import deque
 
 
@@ -30,7 +31,7 @@ class SNumber(SSelfEvalExp):
         elif isinstance(n, float):
             return SReal(n)
         else:  # n is raw expression
-            return SInteger(int(n)) if is_int(n) else SReal(float(n))
+            return SInteger(int(n)) if _int_exp.match(n) else SReal(float(n))
 
     def __repr__(self): return 'SNumber(%d)' % self
 
@@ -317,9 +318,8 @@ special_forms = {
 
 # analyzing
 
-is_int = lambda raw_exp: (raw_exp.isnumeric() or
-                          (raw_exp.startswith('-') and raw_exp[1:].isnumeric()))
-is_str = lambda raw_exp: len(raw_exp) >= 2 and raw_exp[0] == '"' and raw_exp[-1] == '"'
+_int_exp = re.compile(r'^[-+]?[0-9]*$')
+_str_exp = re.compile(r'^".*"$')
 
 
 def analyze(exp):
@@ -331,7 +331,7 @@ def analyze(exp):
             return SNumber(exp)
         except ValueError:
             pass
-        if is_str(exp):
+        if _str_exp.match(exp):
             return SString(exp)
         else:
             return SSymbol(exp)  # treat symbol as variable
