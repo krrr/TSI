@@ -12,7 +12,7 @@ Execute script:
 ```
 
 ### Missing:
-* floating-point number, division
+* rational number
 * quasiquote notation, # literals
-* call/cc, tail-recursion-optimization
-* many primary procedures & special forms
+* call/cc
+* many primary procedures & some special forms
