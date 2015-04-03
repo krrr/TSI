@@ -87,15 +87,6 @@ def _gen_prim_cmp(cmp):
     return template
 
 
-def _gen_prim_is(test):
-    """Used to generate is tests like symbol?"""
-    return lambda x: theTrue if test(x) else theFalse
-
-
-def _prim_cons(car, cdr):
-    return SPair(car, cdr)
-
-
 def _gen_pair_dr(op):
     """Used to generate shortcuts like cadr."""
     def template(pair):
@@ -127,6 +118,9 @@ def _prim_load_ext(s):
     return theNil
 
 
+# helper function used in tests like symbol?
+_s_bool = lambda x: theTrue if x else theFalse
+
 prim_proc_name_imp = (
     # arithmetic
     ('+', SPrimitiveProc(_prim_add)),
@@ -142,7 +136,7 @@ prim_proc_name_imp = (
 
     ('not', SPrimitiveProc(_prim_not)),
     # pair & list
-    ('cons', SPrimitiveProc(_prim_cons)),
+    ('cons', SPrimitiveProc(lambda car, cdr: SPair(car, cdr))),
     ('car', SPrimitiveProc(_gen_pair_dr(lambda p: p.car))),
     ('cdr', SPrimitiveProc(_gen_pair_dr(lambda p: p.cdr))),
     ('cddr', SPrimitiveProc(_gen_pair_dr(lambda p: p.cdr.cdr))),
@@ -150,13 +144,14 @@ prim_proc_name_imp = (
     ('caddr', SPrimitiveProc(_gen_pair_dr(lambda p: p.cdr.cdr.car))),
     ('list', SPrimitiveProc(_prim_list)),
     # is
-    ('null?', SPrimitiveProc(_gen_prim_is(lambda x: x is theNil))),
-    ('boolean?', SPrimitiveProc(_gen_prim_is(lambda x: x in [theTrue, theFalse]))),
-    ('pair?', SPrimitiveProc(_gen_prim_is(lambda x: isinstance(x, SPair)))),
-    ('symbol?', SPrimitiveProc(_gen_prim_is(lambda x: isinstance(x, SSymbol)))),
-    ('number?', SPrimitiveProc(_gen_prim_is(lambda x: isinstance(x, SNumber)))),
-    ('integer?', SPrimitiveProc(_gen_prim_is(lambda x: isinstance(x, SInteger)))),
-    ('real?', SPrimitiveProc(_gen_prim_is(lambda x: isinstance(x, SReal)))),
+    ('null?', SPrimitiveProc(lambda x: _s_bool(x is theNil))),
+    ('boolean?', SPrimitiveProc(lambda x: _s_bool(x in [theTrue, theFalse]))),
+    ('pair?', SPrimitiveProc(lambda x: _s_bool(isinstance(x, SPair)))),
+    ('symbol?', SPrimitiveProc(lambda x: _s_bool(isinstance(x, SSymbol)))),
+    ('string?', SPrimitiveProc(lambda x: _s_bool(isinstance(x, SString)))),
+    ('number?', SPrimitiveProc(lambda x: _s_bool(isinstance(x, SNumber)))),
+    ('integer?', SPrimitiveProc(lambda x: _s_bool(isinstance(x, SInteger)))),
+    ('real?', SPrimitiveProc(lambda x: _s_bool(isinstance(x, SReal)))),
     # system
     ('load', SPrimitiveProc(_prim_load)),
     ('load-ext', SPrimitiveProc(_prim_load_ext)),
