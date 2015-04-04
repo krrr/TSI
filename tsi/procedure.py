@@ -67,11 +67,6 @@ def _prim_display(obj):
     return theNil
 
 
-def _prim_newline():
-    print()
-    return theNil
-
-
 def _prim_not(obj):
     return theFalse if is_true(obj) else theTrue
 
@@ -158,7 +153,7 @@ prim_proc_name_imp = (
     ('exit', SPrimitiveProc(lambda: sys.exit(0))),
     ('display', SPrimitiveProc(_prim_display)),
     ('print', SPrimitiveProc(lambda *args: print(*args) or theNil)),
-    ('newline', SPrimitiveProc(_prim_newline)),
+    ('newline', SPrimitiveProc(lambda: print() or theNil)),
 )
 
 # register names
