@@ -23,23 +23,20 @@ def eval_internal(exp, env):
     while stack:
         e = stack.pop()
         if isinstance(e, GeneratorType):
-            try:
-                while True:
-                    ret = next(e)
-                    if isinstance(ret, EvalRequest):
-                        ret.caller = e
-                        stack.extend([e, ret])
-                        env_stack.append(ret.env)
-                        break
-            except StopIteration:
-                pass
+            for ret in e:
+                if isinstance(ret, EvalRequest):
+                    ret.caller = e
+                    stack.extend((e, ret))
+                    env_stack.append(ret.env)
+                    # the next time this generator will start from 'paused' position
+                    break
         elif isinstance(e, EvalRequest):
             # retrieve evaluated exp (except the first time)
             if e.idx != -1: e.seq[e.idx] = ret
 
             if e.idx < len(e.seq) - 1:
                 e.idx += 1
-                stack.extend([e, e.seq[e.idx]])
+                stack.extend((e, e.seq[e.idx]))
             else:  # request finished
                 ret = e.caller.send(e.seq)  # send will invoke yield
                 if isinstance(ret, EvalRequest):
