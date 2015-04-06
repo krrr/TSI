@@ -120,8 +120,7 @@ class SExpApplication(SExp):
             yield proc.apply(operands)
         elif isinstance(proc, SCompoundProc):
             if len(proc.parameters) != len(operands):
-                raise Exception('%d args expected, got %d -- APPLY (%s)'
-                                % (len(proc.parameters), len(operands), str(proc)))
+                raise Exception('Wrong number of args -- APPLY (%s)' % str(proc))
             # only eliminate tail recursion, not all tail-call
             if self.callStack and proc is self.callStack[-1]:
                 yield proc, operands
