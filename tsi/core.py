@@ -8,9 +8,9 @@ class EvalRequest:
     def __init__(self, seq, env):
         assert isinstance(seq, (list, tuple))  # seq can be empty
         self.seq = list(seq)
-        self.env = env
-        self.idx = -1
-        self.caller = None
+        self.env = env  # eval under this environment
+        self.idx = -1  # index of last evaluated exp
+        self.caller = None  # who made this request
 
 
 def eval_internal(exp, env):
@@ -47,11 +47,11 @@ def eval_internal(exp, env):
                 else:
                     env_stack.pop()
         else:
-            gen_or_value = e(env_stack[-1])
-            if isinstance(gen_or_value, GeneratorType):
-                stack.append(gen_or_value)
+            uo = e(env_stack[-1])
+            if isinstance(uo, GeneratorType):
+                stack.append(uo)
             else:  # avoid looping again to yield, only for non-yield method like SNumber
-                ret = gen_or_value
+                ret = uo
     assert len(env_stack) == 1
     return ret
 
