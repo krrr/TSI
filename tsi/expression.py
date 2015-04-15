@@ -26,9 +26,9 @@ class SSelfEvalExp(SExp):
 
 class SNumber(SSelfEvalExp):
     def __new__(cls, n):
-        if isinstance(n, int):
+        if n.__class__ == int:
             return SInteger(n)
-        elif isinstance(n, float):
+        elif n.__class__ == float:
             return SReal(n)
         else:  # n is raw expression
             return SInteger(int(n)) if _int_exp.match(n) else SReal(float(n))
@@ -116,9 +116,9 @@ class SExpApplication(SExp):
         operands = yield EvalRequest(self.operands, env)
         self.callStack.pop()
 
-        if isinstance(proc, SPrimitiveProc):
+        if proc.__class__ == SPrimitiveProc:
             yield proc.apply(operands)
-        elif isinstance(proc, SCompoundProc):
+        elif proc.__class__ == SCompoundProc:
             if len(proc.parameters) != len(operands):
                 raise Exception('Wrong number of args -- APPLY (%s)' % str(proc))
             # only eliminate tail recursion, not all tail-call
@@ -129,7 +129,7 @@ class SExpApplication(SExp):
                 while True:
                     new_env = proc.env.makeExtend(zip(proc.parameters, operands))
                     last = (yield EvalRequest(proc.body, new_env))[-1]
-                    if not isinstance(last, tuple): break
+                    if last.__class__ != tuple: break
                     proc, operands = last
                 self.callStack.pop()
                 yield last
@@ -163,7 +163,7 @@ class SExpIf(SExp):
 
 class SExpBegin(SExp):
     def __init__(self, exp):
-        if len(exp) < 2: raise Exception('ill-from begin')
+        if len(exp) < 2: raise Exception('ill-form begin')
         self.body = tuple(map(analyze, exp[1:]))
 
     def __call__(self, env):

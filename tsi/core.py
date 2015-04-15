@@ -22,15 +22,15 @@ def eval_internal(exp, env):
 
     while stack:
         e = stack.pop()
-        if isinstance(e, GeneratorType):
+        if e.__class__ == GeneratorType:
             for ret in e:
-                if isinstance(ret, EvalRequest):
+                if ret.__class__ == EvalRequest:
                     ret.caller = e
                     stack.extend((e, ret))
                     env_stack.append(ret.env)
                     # the next time this generator will start from 'paused' position
                     break
-        elif isinstance(e, EvalRequest):
+        elif e.__class__ == EvalRequest:
             # retrieve evaluated exp (except the first time)
             if e.idx != -1: e.seq[e.idx] = ret
 
@@ -39,7 +39,7 @@ def eval_internal(exp, env):
                 stack.extend((e, e.seq[e.idx]))
             else:  # request finished
                 ret = e.caller.send(e.seq)  # send will invoke yield
-                if isinstance(ret, EvalRequest):
+                if ret.__class__ == EvalRequest:
                     # if result is still EvalReq, replace current EvalReq with this
                     env_stack[-1] = ret.env
                     ret.caller = e.caller
@@ -48,7 +48,7 @@ def eval_internal(exp, env):
                     env_stack.pop()
         else:
             uo = e(env_stack[-1])
-            if isinstance(uo, GeneratorType):
+            if uo.__class__ == GeneratorType:
                 stack.append(uo)
             else:  # avoid looping again to yield, only for non-yield method like SNumber
                 ret = uo
