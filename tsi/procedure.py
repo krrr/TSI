@@ -79,7 +79,7 @@ def _gen_prim_cmp(cmp):
             if not cmp(x, y): return theFalse
         return theTrue
 
-    return template
+    return SPrimitiveProc(template)
 
 
 def _gen_pair_dr(op):
@@ -90,7 +90,7 @@ def _gen_pair_dr(op):
         except AttributeError:
             raise Exception('a pair expected')
 
-    return template
+    return SPrimitiveProc(template)
 
 
 def _prim_list(*args):
@@ -122,22 +122,22 @@ prim_proc_name_imp = (
     ('-', SPrimitiveProc(_prim_sub)),
     ('*', SPrimitiveProc(_prim_mul)),
     ('/', SPrimitiveProc(_prim_div)),
-    ('<', SPrimitiveProc(_gen_prim_cmp(lambda x, y: x < y))),
-    ('<=', SPrimitiveProc(_gen_prim_cmp(lambda x, y: x <= y))),
-    ('=', SPrimitiveProc(_gen_prim_cmp(lambda x, y: x == y))),
-    ('>', SPrimitiveProc(_gen_prim_cmp(lambda x, y: x > y))),
-    ('>=', SPrimitiveProc(_gen_prim_cmp(lambda x, y: x >= y))),
+    ('<', _gen_prim_cmp(lambda x, y: x < y)),
+    ('<=', _gen_prim_cmp(lambda x, y: x <= y)),
+    ('=', _gen_prim_cmp(lambda x, y: x == y)),
+    ('>', _gen_prim_cmp(lambda x, y: x > y)),
+    ('>=', _gen_prim_cmp(lambda x, y: x >= y)),
     ('modulo', SPrimitiveProc(lambda x, y: x % y)),
 
     ('not', SPrimitiveProc(_prim_not)),
     # pair & list
     ('cons', SPrimitiveProc(lambda car, cdr: SPair(car, cdr))),
-    ('car', SPrimitiveProc(_gen_pair_dr(lambda p: p.car))),
-    ('cdr', SPrimitiveProc(_gen_pair_dr(lambda p: p.cdr))),
-    ('cddr', SPrimitiveProc(_gen_pair_dr(lambda p: p.cdr.cdr))),
-    ('cadr', SPrimitiveProc(_gen_pair_dr(lambda p: p.cdr.car))),
-    ('caddr', SPrimitiveProc(_gen_pair_dr(lambda p: p.cdr.cdr.car))),
-    ('list', SPrimitiveProc(_prim_list)),
+    ('car', _gen_pair_dr(lambda p: p.car)),
+    ('cdr', _gen_pair_dr(lambda p: p.cdr)),
+    ('cddr', _gen_pair_dr(lambda p: p.cdr.cdr)),
+    ('cadr', _gen_pair_dr(lambda p: p.cdr.car)),
+    ('caddr', _gen_pair_dr(lambda p: p.cdr.cdr.car)),
+    ('list', _prim_list),
     # is
     ('null?', SPrimitiveProc(lambda x: _s_bool(x is theNil))),
     ('boolean?', SPrimitiveProc(lambda x: _s_bool(x in [theTrue, theFalse]))),
