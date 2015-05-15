@@ -127,7 +127,7 @@ prim_proc_name_imp = (
     ('=', _gen_prim_cmp(lambda x, y: x == y)),
     ('>', _gen_prim_cmp(lambda x, y: x > y)),
     ('>=', _gen_prim_cmp(lambda x, y: x >= y)),
-    ('modulo', SPrimitiveProc(lambda x, y: x % y)),
+    ('modulo', SPrimitiveProc(lambda x, y: SNumber(x % y))),
 
     ('not', SPrimitiveProc(_prim_not)),
     # pair & list
