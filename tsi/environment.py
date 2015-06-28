@@ -6,6 +6,9 @@ class SEnvironment:
         self.enclosing = enclosing
         self.vars = vars if vars else {}
 
+    def __repr__(self):
+        return 'SEnv(%s)' % 'global' if self.enclosing is None else ''
+
     def makeExtend(self, varValPairs):
         """Make a new environment whose enclosing is this one. This equals
         extend-environment in SICP."""
@@ -44,7 +47,7 @@ def setup_environment():
     env.extend((('true', theTrue), ('false', theFalse), ('#t', theTrue),
                ('#f', theFalse), ('nil', theNil)))
     # load stdlib
-    # load_file(path.join(path.dirname(__file__), 'stdlib.scm'))
+    load_file(path.join(path.dirname(__file__), 'stdlib.scm'))
     return env
 
 

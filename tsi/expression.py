@@ -1,17 +1,14 @@
 import re
-from collections import deque
 
 
 class SExp:
     """The base class of all expressions. Analyzing is done in constructor,
-    and it evaluate itself when called."""
+    and they evaluate themselves when being called."""
     def __call__(self, env):
-        """Evaluate this expression in given environment and return result.
-        This method will become a generator in almost special forms (always use
-        yield in generator, ignore Py3.3's return). Yielding a EvalRequest
-        object can make eval resume us with result, solving recursion limit
-        problem."""
-        # be sure to return or yield in this method!
+        """Evaluate this expression in the given environment and return result.
+        If it's necessary to evaluate other expressions, a EvalRequest will
+        be returned. This can make the eval resume us with result, solving
+        recursion limit problem."""
         raise NotImplementedError
 
 
@@ -108,22 +105,25 @@ class SExpApplication(SExp):
 
     def __call__(self, env, req=None):
         """The apply."""
-        if req is None:
-            proc = self.operator(env)
-            return EvalRequest(self.operands, env, our_proc=proc)
+        if req is None and self.operands:
+            return EvalRequest(self.operands, env)
         else:
-            proc, operands = req.our_proc, req.seq
+            proc = self.operator(env)
+            operands = req.getAll() if self.operands else []
 
-            if proc.__class__ == SPrimitiveProc:
+            try:
                 return proc.apply(operands)
-            elif proc.__class__ == SCompoundProc:
-                if len(proc.parameters) != len(operands):
-                    raise Exception('Wrong number of args -- APPLY (%s)' % str(proc))
-                new_env = proc.env.makeExtend(zip(proc.parameters, operands))
-                # eliminate all tail call, including tail recursion
-                return EvalRequest(proc.body, new_env, as_value=True)
-            else:
+            except AttributeError:
                 raise Exception('Unknown procedure type -- APPLY (%s)' % str(proc))
+
+
+class SExpCallCc(SExp):
+    def __init__(self, exp):
+        if len(exp) != 2: raise Exception('call/cc take one argument')
+        self.arg = analyze(exp[1])
+
+    def __call__(self, env):
+        return self.arg(env).apply([SContinuation()])
 
 
 class SExpIf(SExp):
@@ -299,6 +299,8 @@ class SExpLet(SExp):
 
 
 special_forms = {
+    'call/cc': SExpCallCc,
+    'call-with-current-continuation': SExpCallCc,
     'if': SExpIf,
     'define': SExpDefinition,
     'set!': SExpAssignment,
@@ -341,4 +343,4 @@ def analyze(exp):
 
 
 from .core import EvalRequest
-from .procedure import SCompoundProc, SPrimitiveProc
+from .procedure import SCompoundProc, SPrimitiveProc, SContinuation

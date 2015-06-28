@@ -4,7 +4,9 @@ import math
 
 
 class SProc:
-    """The base class of two kinds of procedure"""
+    """The base class of all procedures."""
+    def apply(self, operands):
+        raise NotImplementedError
 
 
 class SPrimitiveProc(SProc):
@@ -15,9 +17,9 @@ class SPrimitiveProc(SProc):
     def __str__(self):
         return '<primitive-procedure (%s)>' % self.name
 
-    def apply(self, args):
+    def apply(self, operands):
         try:
-            return self._imp(*args)
+            return self._imp(*operands)
         except TypeError as e:  # wrong number of args
             # a trick: use Python's error message
             msg = str(e).split()
@@ -37,6 +39,29 @@ class SCompoundProc(SProc):
     def __str__(self):
         para = ','.join(self.parameters) if self.parameters else 'none'
         return '<compound-procedure (param: %s)>' % para
+
+    def apply(self, operands):
+        if len(self.parameters) != len(operands):
+            raise Exception('Wrong number of args -- APPLY (%s)' % str(self))
+        new_env = self.env.makeExtend(zip(self.parameters, operands))
+        # eliminate all tail call, including tail recursion
+        return EvalRequest(self.body, new_env, as_value=True)
+
+
+class SContinuation(SProc):
+    """The Continuation is a special procedure that has zero or one argument."""
+    class Invoke(Exception):
+        """This Exception let eval recover its stack from the snapshot."""
+
+    def __init__(self):
+        self.snapshot = take_snapshot()
+
+    def __str__(self):
+        return '<continuation>'
+
+    def apply(self, operands):
+        if len(operands) > 1: raise Exception('Too many argument for continuation')
+        raise self.Invoke(self.snapshot, operands[0] if operands else theNil)
 
 
 def _prim_add(*args):
@@ -160,5 +185,6 @@ prim_proc_name_imp = (
 for _n, _p in prim_proc_name_imp: _p.name = _n
 
 from . import load_file
+from .core import take_snapshot
 from .expression import *
 from .environment import get_global_env

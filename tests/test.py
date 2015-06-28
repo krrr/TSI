@@ -72,6 +72,18 @@ class TestEvaluator(TestCase):
             ev(('let', (('x', '10'), ('xx', '73')),
                        ('+', 'x', 'xx'))), ev('83'))
 
+    def test_continuation(self):
+        self.assertEqual(
+            ev(('call/cc', ('lambda', ('cont',),
+                            ('cont', '1')))),
+            ev('1'), )
+
+        ev(('define', ('a',),
+            ('call/cc', ('lambda',
+                         ('c',), ('c', '1')))))
+        self.assertEqual(ev(('a',)), ev('1'),
+                         'May cause strange problem with env_stack')
+
 
 class TestParser(TestCase):
     def test(self):
