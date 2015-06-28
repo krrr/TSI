@@ -44,7 +44,7 @@ def setup_environment():
     env.extend((('true', theTrue), ('false', theFalse), ('#t', theTrue),
                ('#f', theFalse), ('nil', theNil)))
     # load stdlib
-    load_file(path.join(path.dirname(__file__), 'stdlib.scm'))
+    # load_file(path.join(path.dirname(__file__), 'stdlib.scm'))
     return env
 
 

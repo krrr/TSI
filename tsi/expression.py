@@ -101,49 +101,29 @@ theTrue, theFalse, theNil = STrue(), SFalse(), SNil()
 # special forms
 
 class SExpApplication(SExp):
-    callStack = deque()  # only for compound procedure
-
     def __init__(self, exp):
         operator, *operands = exp
         self.operator = analyze(operator)
         self.operands = tuple(map(analyze, operands))
 
-    def __call__(self, env):
+    def __call__(self, env, req=None):
         """The apply."""
-        # prevent eliminating (return proc, operands) while evaluating operands
-        self.callStack.append(None)
-        proc = self.operator(env)
-        operands = yield EvalRequest(self.operands, env)
-        self.callStack.pop()
-
-        if proc.__class__ == SPrimitiveProc:
-            yield proc.apply(operands)
-        elif proc.__class__ == SCompoundProc:
-            if len(proc.parameters) != len(operands):
-                raise Exception('Wrong number of args -- APPLY (%s)' % str(proc))
-            # only eliminate tail recursion, not all tail-call
-            if self.callStack and proc is self.callStack[-1]:
-                yield proc, operands
-            else:
-                self.callStack.append(proc)
-                while True:
-                    new_env = proc.env.makeExtend(zip(proc.parameters, operands))
-                    last = (yield EvalRequest(proc.body, new_env))[-1]
-                    if last.__class__ != tuple: break
-                    proc, operands = last
-                self.callStack.pop()
-                yield last
+        if req is None:
+            proc = self.operator(env)
+            return EvalRequest(self.operands, env, our_proc=proc)
         else:
-            raise Exception('Unknown procedure type -- APPLY (%s)' % str(proc))
+            proc, operands = req.our_proc, req.seq
 
-    @classmethod
-    def printStackTrace(cls):
-        print('StackTrace:')
-        print('  Global Environment')
-        for i in filter(None, cls.callStack):
-            # when evaluating operands of a procedure, we got None in stack
-            print('  %s' % str(i))
-        print()
+            if proc.__class__ == SPrimitiveProc:
+                return proc.apply(operands)
+            elif proc.__class__ == SCompoundProc:
+                if len(proc.parameters) != len(operands):
+                    raise Exception('Wrong number of args -- APPLY (%s)' % str(proc))
+                new_env = proc.env.makeExtend(zip(proc.parameters, operands))
+                # eliminate all tail call, including tail recursion
+                return EvalRequest(proc.body, new_env, as_value=True)
+            else:
+                raise Exception('Unknown procedure type -- APPLY (%s)' % str(proc))
 
 
 class SExpIf(SExp):
@@ -153,12 +133,12 @@ class SExpIf(SExp):
         self.predicate, self.consequent = analyze(pre), analyze(con)
         self.alternative = analyze(alter[0]) if alter else theFalse
 
-    def __call__(self, env):
-        predicate = (yield EvalRequest([self.predicate], env))[0]
-        if is_true(predicate):
-            yield (yield EvalRequest([self.consequent], env))[0]
+    def __call__(self, env, req=None):
+        if req is None:
+            return EvalRequest(self.predicate, env)
         else:
-            yield (yield EvalRequest([self.alternative], env))[0]
+            return EvalRequest(self.consequent if is_true(req.get()) else self.alternative,
+                               env, as_value=True)
 
 
 class SExpBegin(SExp):
@@ -167,7 +147,7 @@ class SExpBegin(SExp):
         self.body = tuple(map(analyze, exp[1:]))
 
     def __call__(self, env):
-        yield (yield EvalRequest(self.body, env))[-1]
+        return EvalRequest(self.body, env, as_value=True)
 
 
 class SExpAssignment(SExp):
@@ -176,9 +156,12 @@ class SExpAssignment(SExp):
         var, value = exp[1:]
         self.variable, self.value = var, analyze(value)
 
-    def __call__(self, env):
-        env.setVarValue(self.variable, (yield EvalRequest([self.value], env))[0])
-        yield theNil
+    def __call__(self, env, req=None):
+        if req is None:
+            return EvalRequest(self.value, env)
+        else:
+            env.setVarValue(self.variable, req.get())
+        return theNil
 
 
 class SExpDefinition(SExp):
@@ -194,9 +177,12 @@ class SExpDefinition(SExp):
         except (IndexError, ValueError):
             raise Exception('ill-form define')
 
-    def __call__(self, env):
-        env.defVar(self.variable, (yield EvalRequest([self.value], env))[0])
-        yield theNil
+    def __call__(self, env, req=None):
+        if req is None:
+            return EvalRequest(self.value, env)
+        else:
+            env.defVar(self.variable, req.get())
+        return theNil
 
 
 class SExpLambda(SExp):
@@ -228,24 +214,34 @@ class SExpOr(SExp):
     def __init__(self, exp):
         self.seq = tuple(map(analyze, exp[1:]))
 
-    def __call__(self, env):
-        value = theFalse
-        for i in self.seq:
-            value = (yield EvalRequest([i], env))[0]
-            if is_true(value): break
-        yield value
+    def __call__(self, env, req=None):
+        if req is None:
+            return EvalRequest(self.seq[0], env, our_idx=0) if self.seq else theFalse
+        else:
+            value, next_idx = req.get(), req.our_idx + 1
+            if is_true(value):
+                return value
+            elif next_idx < len(self.seq):
+                return EvalRequest(self.seq[next_idx], env, our_idx=next_idx)
+            else:  # all exp are false, return the value of the last
+                return value
 
 
 class SExpAnd(SExp):
     def __init__(self, exp):
         self.seq = tuple(map(analyze, exp[1:]))
 
-    def __call__(self, env):
-        value = theTrue
-        for i in self.seq:
-            value = (yield EvalRequest([i], env))[0]
-            if is_false(value): break
-        yield value
+    def __call__(self, env, req=None):
+        if req is None:
+            return EvalRequest(self.seq[0], env, our_idx=0) if self.seq else theTrue
+        else:
+            value, next_idx = req.get(), req.our_idx + 1
+            if is_false(value):
+                return value
+            elif next_idx < len(self.seq):
+                return EvalRequest(self.seq[next_idx], env, our_idx=next_idx)
+            else:  # all exp are true, return the value of the last
+                return value
 
 
 # derived expressions
@@ -260,7 +256,7 @@ class SExpCond(SExp):
             raise Exception('ill-form cond')
 
     def __call__(self, env):
-        yield (yield EvalRequest([self.body], env))[0]
+        return EvalRequest(self.body, env, as_value=True)
 
     @staticmethod
     def _expandClauses(clauses):
@@ -293,7 +289,7 @@ class SExpLet(SExp):
             raise Exception('ill-form let')
 
     def __call__(self, env):
-        yield (yield EvalRequest([self.app], env))[0]
+        return EvalRequest(self.app, env, as_value=True)
 
     @staticmethod
     def _toCombination(bounds, body):
