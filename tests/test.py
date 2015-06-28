@@ -1,5 +1,5 @@
 from unittest import TestCase, main
-from tsi import eval, setup_environment, parse
+from tsi import eval, setup_environment, parse, load_file
 
 the_global_env = setup_environment()
 ev = lambda exp: eval(exp, the_global_env)  # shortcut
@@ -99,6 +99,28 @@ class TestParser(TestCase):
         self.assertRaises(Exception, parse, '')
         self.assertRaises(Exception, parse, '())')
         self.assertRaises(Exception, parse, "'more-than-one-exp 'at-one-line")
+
+
+class TestPrograms(TestCase):
+    def setUp(self):
+        the_global_env = setup_environment()
+        self.ev = lambda exp: eval(exp, the_global_env)  # shortcut
+
+    def test_call_cc_gen(self):
+        load_file('call-cc-generator.scm')
+        self.ev(('define', 'g', ('gen', ('quote', ('1', '2', '3')))))
+        self.assertEqual(self.ev(('g',)), self.ev('1'))
+        self.assertEqual(self.ev(('g',)), self.ev('2'))
+        self.assertEqual(self.ev(('g',)), self.ev('3'))
+        self.assertEqual(self.ev(('g',)), self.ev(('quote', 'you-fell-off-the-end')))
+        self.assertEqual(self.ev(('g',)), self.ev(('quote', 'you-fell-off-the-end')))
+
+    def test_queen(self):
+        load_file('queen.scm')
+        # result for (queens 4): ((3 1 4 2) (2 4 1 3))
+        self.assertEqual(self.ev(('queens', '4')),
+                         self.ev(('quote', (('3', '1', '4', '2'),
+                                            ('2', '4', '1', '3')))))
 
 
 if __name__ == '__main__':
