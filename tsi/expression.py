@@ -45,6 +45,9 @@ class SString(SSelfEvalExp):
 
     def __str__(self): return self.string
 
+    def __eq__(self, other):
+        return isinstance(other, SString) and self.string == other.string
+
 
 class STrue(SSelfEvalExp):
     def __str__(self): return '#t'
@@ -61,6 +64,9 @@ class SSymbol(SExp):
     def __call__(self, env): return env.getVarValue(self.name)
 
     def __str__(self): return self.name
+
+    def __eq__(self, other):
+        return isinstance(other, SSymbol) and self.name == other.name
 
 
 class SNil(SObject):
@@ -82,6 +88,10 @@ class SPair(SObject):
                 return [curt.car, '.', curt.cdr]  # pair or not well-formed list
 
         return '(%s)' % ' '.join(map(str, walker(self)))
+
+    def __eq__(self, other):
+        return (isinstance(other, SPair) and self.car == other.car and
+                self.cdr == other.cdr)
 
     @staticmethod
     def makeList(seq):
