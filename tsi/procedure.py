@@ -137,7 +137,7 @@ prim_proc_name_imp = (
     ('cddr', _gen_pair_dr(lambda p: p.cdr.cdr)),
     ('cadr', _gen_pair_dr(lambda p: p.cdr.car)),
     ('caddr', _gen_pair_dr(lambda p: p.cdr.cdr.car)),
-    ('list', _prim_list),
+    ('list', SPrimitiveProc(_prim_list)),
     # is
     ('null?', SPrimitiveProc(lambda x: _s_bool(x is theNil))),
     ('boolean?', SPrimitiveProc(lambda x: _s_bool(x in [theTrue, theFalse]))),
