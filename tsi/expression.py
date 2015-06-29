@@ -27,10 +27,12 @@ class SNumber(SSelfEvalExp):
             return SInteger(n)
         elif n.__class__ == float:
             return SReal(n)
-        else:  # n is raw expression
-            return SInteger(int(n)) if _int_exp.match(n) else SReal(float(n))
-
-    def __repr__(self): return 'SNumber(%d)' % self
+        elif n.__class__ == str:  # n is raw expression
+            return SInteger(n) if _int_exp.match(n) else SReal(n)
+        else:  # n is instance of SNumber
+            # happens when SInt(1) % SInt(3), the value is the first SInt
+            assert isinstance(n, cls)
+            return n
 
 
 class SInteger(int, SNumber): pass
