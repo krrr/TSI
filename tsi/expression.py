@@ -164,9 +164,9 @@ class SExpBegin(SExp):
 
 class SExpAssignment(SExp):
     def __init__(self, exp):
-        if len(exp) != 3: raise Exception('ill-form assignment')
-        var, value = exp[1:]
-        self.variable, self.value = var, analyze(value)
+        if len(exp) != 3 or exp[1].__class__ != str:
+            raise Exception('ill-form assignment')
+        self.variable, self.value = exp[1], analyze(exp[2])
 
     def __call__(self, env, req=None):
         if req is None:
