@@ -140,7 +140,7 @@ class SExpCallCc(SExp):
 
 class SExpIf(SExp):
     def __init__(self, exp):
-        if not 3 <= len(exp) <= 4: raise Exception('ill-form if')
+        if not 3 <= len(exp) <= 4: raise Exception('Malformed if')
         pre, con, *alter = exp[1:]
         self.predicate, self.consequent = analyze(pre), analyze(con)
         self.alternative = analyze(alter[0]) if alter else theFalse
@@ -155,7 +155,7 @@ class SExpIf(SExp):
 
 class SExpBegin(SExp):
     def __init__(self, exp):
-        if len(exp) < 2: raise Exception('ill-form begin')
+        if len(exp) < 2: raise Exception('Malformed begin')
         self.body = tuple(map(analyze, exp[1:]))
 
     def __call__(self, env):
@@ -165,7 +165,7 @@ class SExpBegin(SExp):
 class SExpAssignment(SExp):
     def __init__(self, exp):
         if len(exp) != 3 or exp[1].__class__ != str:
-            raise Exception('ill-form assignment')
+            raise Exception('Malformed assignment')
         self.variable, self.value = exp[1], analyze(exp[2])
 
     def __call__(self, env, req=None):
@@ -183,11 +183,11 @@ class SExpDefinition(SExp):
                 var, value = exp[1:]
                 self.variable, self.value = var, analyze(value)
             else:  # define function
-                if not exp[2:]: raise Exception('ill-form define')
+                if not exp[2:]: raise Exception('Malformed define')
                 lambdaExp = ('lambda', exp[1][1:]) + exp[2:]
                 self.variable, self.value = exp[1][0], SExpLambda(lambdaExp)
         except (IndexError, ValueError):
-            raise Exception('ill-form define')
+            raise Exception('Malformed define')
 
     def __call__(self, env, req=None):
         if req is None:
@@ -200,7 +200,7 @@ class SExpDefinition(SExp):
 class SExpLambda(SExp):
     def __init__(self, exp):
         if len(exp) < 3 or not isinstance(exp[1], tuple):
-            raise Exception('ill-form lambda')
+            raise Exception('Malformed lambda')
         param, *body = exp[1:]
         self.parameters, self.body = param, tuple(map(analyze, body))
 
@@ -210,7 +210,7 @@ class SExpLambda(SExp):
 
 class SExpQuote(SExp):
     def __init__(self, exp):
-        if len(exp) != 2: raise Exception('ill-form quote')
+        if len(exp) != 2: raise Exception('Malformed quote')
         self.datum = self.walker(exp[1])
 
     def __call__(self, __): return self.datum
@@ -265,7 +265,7 @@ class SExpCond(SExp):
             clauses = exp[1:]
             self.body = analyze(self._expandClauses(clauses))
         except IndexError:
-            raise Exception('ill-form cond')
+            raise Exception('Malformed cond')
 
     def __call__(self, env):
         return EvalRequest(self.body, env, as_value=True)
@@ -298,7 +298,7 @@ class SExpLet(SExp):
             bounds, *body = exp[1:]
             self.app = analyze(self._toCombination(bounds, tuple(body)))
         except (IndexError, ValueError):
-            raise Exception('ill-form let')
+            raise Exception('Malformed let')
 
     def __call__(self, env):
         return EvalRequest(self.app, env, as_value=True)
