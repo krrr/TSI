@@ -40,3 +40,14 @@ def parse(s, multi_exp=False):
     if tokens:
         raise Exception('Too many right parentheses or more than one expression')
     return ret
+
+
+def parse_input():
+    """This is similar to Scheme's read, except that all atom (such as +, 23, x)
+    is string. It will also handle quote."""
+    s = [input()]
+    while True:
+        try:
+            return parse(''.join(s))
+        except ValueError:
+            s += [' ', input()]
