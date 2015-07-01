@@ -72,6 +72,10 @@ class TestEvaluator(TestCase):
             ev(('let', (('x', '10'), ('xx', '73')),
                        ('+', 'x', 'xx'))), ev('83'))
 
+    def test_apply(self):
+        self.assertEqual(ev(('apply', '+', ('list', '1', '2'))),
+                         ev('3'))
+
     def test_continuation(self):
         self.assertEqual(
             ev(('call/cc', ('lambda', ('cont',),

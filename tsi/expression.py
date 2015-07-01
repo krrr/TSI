@@ -95,6 +95,9 @@ class SPair(SObject):
         return (isinstance(other, SPair) and self.car == other.car and
                 self.cdr == other.cdr)
 
+    def toPyList(self):
+        return [self.car] + (self.cdr.toPyList() if self.cdr != theNil else [])
+
     @staticmethod
     def makeList(seq):
         return SPair(seq[0], SPair.makeList(seq[1:])) if seq else theNil

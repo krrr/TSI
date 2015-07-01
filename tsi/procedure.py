@@ -124,6 +124,17 @@ def _prim_list(*args):
     return SPair(args[0], _prim_list(*args[1:])) if args else theNil
 
 
+def _prim_apply(proc, args):
+    try:
+        args = args.toPyList()
+    except AttributeError:
+        raise Exception('Arguments should be a list')
+    try:
+        return proc.apply(args)
+    except AttributeError:
+        raise Exception('Unknown procedure type')
+
+
 def _prim_load(s):
     if not isinstance(s, SString): raise Exception('A string expected')
     load_file(s.string)
@@ -175,6 +186,7 @@ prim_proc_name_imp = (
     ('integer?', SPrimitiveProc(lambda x: _s_bool(isinstance(x, SInteger)))),
     ('real?', SPrimitiveProc(lambda x: _s_bool(isinstance(x, SReal)))),
     # system
+    ('apply', SPrimitiveProc(_prim_apply)),
     ('load', SPrimitiveProc(_prim_load)),
     ('load-ext', SPrimitiveProc(_prim_load_ext)),
     ('exit', SPrimitiveProc(lambda: sys.exit(0))),
