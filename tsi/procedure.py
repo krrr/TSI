@@ -15,7 +15,7 @@ class SPrimitiveProc(SProc):
         self.name = name
 
     def __str__(self):
-        return '<primitive-procedure (%s)>' % self.name
+        return '<primitive-procedure %s>' % self.name
 
     def apply(self, operands):
         try:
@@ -35,10 +35,12 @@ class SCompoundProc(SProc):
         self.parameters = parameters
         self.body = body  # body should already be analyzed
         self.env = env
+        self.name = None  # assigned once by define form
 
     def __str__(self):
-        para = ','.join(self.parameters) if self.parameters else 'none'
-        return '<compound-procedure (param: %s)>' % para
+        name = self.name + ' ' if self.name else ''
+        para = '(param: %s)' % ','.join(self.parameters) if self.parameters else '(no-param)'
+        return '<compound-procedure %s%s>' % (name, para)
 
     def apply(self, operands):
         if len(self.parameters) != len(operands):

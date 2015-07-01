@@ -196,7 +196,10 @@ class SExpDefinition(SExp):
         if req is None:
             return EvalRequest(self.value, env)
         else:
-            env.defVar(self.variable, req.get())
+            value = req.get()
+            if value.__class__ == SCompoundProc and value.name is None:
+                value.name = self.variable
+            env.defVar(self.variable, value)
         return theNil
 
 
