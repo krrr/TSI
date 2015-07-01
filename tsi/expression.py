@@ -131,11 +131,14 @@ class SExpApplication(SExp):
 
 class SExpCallCc(SExp):
     def __init__(self, exp):
-        if len(exp) != 2: raise Exception('call/cc take one argument')
+        if len(exp) != 2: raise Exception('call/cc take exactly one argument')
         self.arg = analyze(exp[1])
 
     def __call__(self, env):
-        return self.arg(env).apply([SContinuation()])
+        try:
+            return self.arg(env).apply([SContinuation()])
+        except AttributeError:
+            raise Exception('call/cc should take a procedure')
 
 
 class SExpIf(SExp):
