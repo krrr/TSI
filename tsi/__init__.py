@@ -17,7 +17,6 @@ def load_file(path):
 def driver_loop():
     """The read-eval-print loop."""
     from .expression import theNil
-    show_err = lambda s: print(s, file=sys.stderr)  # shortcuts
     the_global_env = get_global_env()
     IN_PROMPT = '>>'
     DEBUG = False
@@ -34,7 +33,7 @@ def driver_loop():
             sys.exit(0)
         except Exception as e:
             if DEBUG: print_exc()
-            else: show_err('Error: %s' % e)
+            else: print('Error: %s' % e, file=sys.stderr)
 
 
 def main_entry():
