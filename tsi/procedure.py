@@ -112,10 +112,17 @@ def _gen_prim_cmp(cmp):
 def _gen_pair_dr(op):
     """Used to generate shortcuts like cadr."""
     def template(pair):
-        try:
-            return op(pair)
-        except AttributeError:
-            raise Exception('a pair expected')
+        if pair.__class__ != SPair: raise Exception('Not a pair')
+        return op(pair)
+
+    return SPrimitiveProc(template)
+
+
+def _gen_pair_set(set_func):
+    def template(pair, value):
+        if pair.__class__ != SPair: raise Exception('Not a pair')
+        set_func(pair, value)
+        return theNil
 
     return SPrimitiveProc(template)
 
@@ -133,6 +140,18 @@ def _prim_apply(proc, args):
         return proc.apply(args)
     except AttributeError:
         raise Exception('Unknown procedure type')
+
+
+def _prim_read():
+    make_symbols = lambda exp: (analyze(exp) if exp.__class__ == str
+        else SPair.makeList([make_symbols(i) for i in exp]))
+
+    return make_symbols(parse_input())
+
+
+def _prim_error(*args):
+    print('User Error: ' +  ' '.join(map(str, args)), file=sys.stderr)
+    sys.exit(-1)
 
 
 def _prim_load(s):
@@ -167,15 +186,15 @@ prim_proc_name_imp = (
     ('>=', _gen_prim_cmp(lambda x, y: x >= y)),
     ('modulo', SPrimitiveProc(lambda x, y: SNumber(x % y))),
 
+    ('eq?', SPrimitiveProc(lambda x, y: _s_bool(x == y))),
     ('not', SPrimitiveProc(_prim_not)),
     # pair & list
     ('cons', SPrimitiveProc(lambda car, cdr: SPair(car, cdr))),
     ('car', _gen_pair_dr(lambda p: p.car)),
     ('cdr', _gen_pair_dr(lambda p: p.cdr)),
-    ('cddr', _gen_pair_dr(lambda p: p.cdr.cdr)),
-    ('cadr', _gen_pair_dr(lambda p: p.cdr.car)),
-    ('caddr', _gen_pair_dr(lambda p: p.cdr.cdr.car)),
     ('list', SPrimitiveProc(_prim_list)),
+    ('set-car!', _gen_pair_set(lambda p, v: setattr(p, 'car', v))),
+    ('set-cdr!', _gen_pair_set(lambda p, v: setattr(p, 'cdr', v))),
     # is
     ('null?', SPrimitiveProc(lambda x: _s_bool(x is theNil))),
     ('boolean?', SPrimitiveProc(lambda x: _s_bool(x in [theTrue, theFalse]))),
@@ -187,8 +206,10 @@ prim_proc_name_imp = (
     ('real?', SPrimitiveProc(lambda x: _s_bool(isinstance(x, SReal)))),
     # system
     ('apply', SPrimitiveProc(_prim_apply)),
+    ('read', SPrimitiveProc(_prim_read)),
     ('load', SPrimitiveProc(_prim_load)),
     ('load-ext', SPrimitiveProc(_prim_load_ext)),
+    ('error', SPrimitiveProc(_prim_error)),
     ('exit', SPrimitiveProc(lambda: sys.exit(0))),
     ('display', SPrimitiveProc(_prim_display)),
     ('print', SPrimitiveProc(lambda *args: print(*args) or theNil)),
@@ -201,4 +222,5 @@ for _n, _p in prim_proc_name_imp: _p.name = _n
 from . import load_file
 from .core import take_snapshot
 from .expression import *
+from .parser import parse_input
 from .environment import get_global_env

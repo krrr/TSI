@@ -44,3 +44,13 @@
 (define (length sequence)
   (accumulate (lambda (x y) (+ y 1)) 0 sequence))
 
+; car/cdr shortcuts
+(define (cadr pair) (car (cdr pair)))
+(define (caddr pair) (car (cdr (cdr pair))))
+(define (cadddr pair) (car (cdr (cdr (cdr pair)))))
+(define (cddr pair) (cdr (cdr pair)))
+(define (cdddr pair) (cdr (cdr (cdr pair))))
+(define (cddddr pair) (cdr (cdr (cdr pair))))
+(define (caadr pair) (car (car (cdr pair))))
+(define (cdadr pair) (cdr (car (cdr pair))))
+
