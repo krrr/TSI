@@ -3,7 +3,7 @@ import re
 
 class SExp:
     """The base class of all expressions. Analyzing is done in constructor,
-    and they evaluate themselves when being called."""
+    and evaluation is done in __call__ method."""
     def __call__(self, env):
         """Evaluate this expression in the given environment and return result.
         If it's necessary to evaluate other expressions, a EvalRequest will
@@ -342,8 +342,7 @@ _str_exp = re.compile(r'^".*"$')
 
 def analyze(exp):
     """This procedure make syntax analyzing and turn raw expression into
-    Sxx object which will then called by EVAL. Every Sxx object knows how to
-    check its own syntax and to evaluate itself."""
+    SExp instance."""
     if isinstance(exp, str) and exp:
         try:
             return SNumber(exp)
@@ -352,7 +351,7 @@ def analyze(exp):
         if _str_exp.match(exp):
             return SString(exp)
         else:
-            return SSymbol(exp)  # treat symbol as variable
+            return SSymbol(exp)  # treat symbols as variables
     elif isinstance(exp, tuple) and exp:
         name = exp[0]
         if name in special_forms:

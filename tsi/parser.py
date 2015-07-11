@@ -6,9 +6,10 @@ _tokenize = re.compile(r'\(|\)|"[^"]*"|[^\(\)\s"]+')
 
 
 def parse(s, multi_exp=False):
-    """Parse the string that contains scheme expression. Multiple expressions
-    is allowed if multi_exp is True, and they should be separated by newline
-    or spaces. Result should be a tuple of strings or tuples.
+    """Parse a string that contains scheme expression. Multiple expressions
+    is allowed only if multi_exp is True. Result should be a "cell", which
+    is string or tuple of cells. If multi_exp is True, result should be a
+    tuple of cells.
     Examples:
         (define aa 1) => ('define', 'aa', '1')
         'a 'b => (('quote', 'a'), ('quote', 'b'))  # multi_exp enabled"""
@@ -44,7 +45,7 @@ def parse(s, multi_exp=False):
 
 def parse_input():
     """This is similar to Scheme's read, except that all atom (such as +, 23, x)
-    is string. It will also handle quote."""
+    is string."""
     s = [input()]
     while True:
         try:

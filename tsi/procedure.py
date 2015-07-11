@@ -1,6 +1,5 @@
 import sys
 from functools import reduce
-import math
 
 
 class SProc:
@@ -51,7 +50,7 @@ class SCompoundProc(SProc):
 
 
 class SContinuation(SProc):
-    """The Continuation is a special procedure that has zero or one argument."""
+    """Continuation is a special procedure that has zero or one argument."""
     class Invoke(Exception):
         """This Exception let eval recover its stack from the snapshot."""
 

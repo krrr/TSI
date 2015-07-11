@@ -2,8 +2,9 @@ from collections import deque
 
 
 class EvalRequest:
-    """Yielding instance of this class (only in some xx.__call__) to let
-    eval evaluate some expressions. After done evaluation we send result back."""
+    """Returning instance of this class (in SExp.__call__) to let the
+    eval evaluate some expressions. The eval will send this instance back
+    after done evaluation."""
     def __init__(self, exp, env, as_value=False, **kwargs):
         self.seq = list(exp) if isinstance(exp, (list, tuple)) else [exp]
         self.env = env  # eval under this environment
