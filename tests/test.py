@@ -8,6 +8,10 @@ ev = lambda exp: eval(exp, the_global_env)  # shortcut
 class TestEvaluator(TestCase):
     def test_lambda(self):
         self.assertEqual(ev((('lambda', ('a', 'b'), 'b', 'a'), '33', '44')), ev('33'))
+        self.assertEqual(ev(((('lambda', ('x',), 'x'), '+'),
+                             '1')),
+                         ev('1'),
+                         msg='procedure apply as operator')
 
     def test_define(self):
         ev(('define', 'aa', '1'))
@@ -31,8 +35,8 @@ class TestEvaluator(TestCase):
                ('else', '3'))),
             ev('3'))
 
-        # without else clause
-        self.assertEqual(ev(('cond', ('#t', '1'))), ev('1'))
+        self.assertEqual(ev(('cond', ('#t', '1'))), ev('1'),
+                         msg='without else clause')
 
     def test_begin(self):
         self.assertEqual(ev(('begin', '1', '2', '3')), ev('3'))
@@ -72,7 +76,7 @@ class TestEvaluator(TestCase):
             ev(('let', (('x', '10'), ('xx', '73')),
                        ('+', 'x', 'xx'))), ev('83'))
 
-    def test_apply(self):
+    def test_prim_apply(self):
         self.assertEqual(ev(('apply', '+', ('list', '1', '2'))),
                          ev('3'))
 

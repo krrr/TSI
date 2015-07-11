@@ -120,11 +120,10 @@ class SExpApplication(SExp):
 
     def __call__(self, env, req=None):
         """The apply."""
-        if req is None and self.operands:
-            return EvalRequest(self.operands, env)
+        if req is None:
+            return EvalRequest((self.operator,) + self.operands, env)
         else:
-            proc = self.operator(env)
-            operands = req.getAll() if self.operands else []
+            proc, *operands = req.getAll()
 
             try:
                 return proc.apply(operands)
