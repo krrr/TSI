@@ -1,19 +1,16 @@
 import re
+from .core import EvalRequest, SObject
 
 
-class SExp:
+class SExp(SObject):
     """The base class of all expressions. Analyzing is done in constructor,
-    and evaluation is done in __call__ method."""
+    and evaluation is done in __call__ method. SExp represents an AST."""
     def __call__(self, env):
         """Evaluate this expression in the given environment and return result.
-        If it's necessary to evaluate other expressions, a EvalRequest will
-        be returned. This can make the eval resume us with result, solving
-        recursion limit problem."""
+        If it's necessary to evaluate other expressions, an EvalRequest() will
+        be returned. After eval has done, it will resume us with the result
+        (by passing "exp" argument)."""
         raise NotImplementedError
-
-
-class SObject:
-    """Something like expression(?) but never get evaluated."""
 
 
 class SSelfEvalExp(SExp):
@@ -361,5 +358,4 @@ def analyze(exp):
     raise Exception('Unknown expression type -- ANALYZE (%s)' % str(exp))
 
 
-from .core import EvalRequest
-from .procedure import SCompoundProc, SPrimitiveProc, SContinuation
+from .procedure import SCompoundProc, SContinuation

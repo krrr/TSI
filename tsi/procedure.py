@@ -1,8 +1,11 @@
 import sys
 from functools import reduce
+from .core import load_file, SObject, take_snapshot, ContinuationInvoked
+from .environment import get_global_env
+from .parser import parse_input
 
 
-class SProc:
+class SProc(SObject):
     """The base class of all procedures."""
     def apply(self, operands):
         raise NotImplementedError
@@ -51,8 +54,6 @@ class SCompoundProc(SProc):
 
 class SContinuation(SProc):
     """Continuation is a special procedure that has zero or one argument."""
-    class Invoke(Exception):
-        """This Exception let eval recover its stack from the snapshot."""
 
     def __init__(self):
         self.snapshot = take_snapshot()
@@ -62,7 +63,7 @@ class SContinuation(SProc):
 
     def apply(self, operands):
         if len(operands) > 1: raise Exception('Too many argument for continuation')
-        raise self.Invoke(self.snapshot, operands[0] if operands else theNil)
+        raise ContinuationInvoked(self.snapshot, operands[0] if operands else theNil)
 
 
 def _prim_add(*args):
@@ -143,13 +144,13 @@ def _prim_apply(proc, args):
 
 def _prim_read():
     make_symbols = lambda exp: (analyze(exp) if exp.__class__ == str
-        else SPair.makeList([make_symbols(i) for i in exp]))
+                                else SPair.makeList([make_symbols(i) for i in exp]))
 
     return make_symbols(parse_input())
 
 
 def _prim_error(*args):
-    print('User Error: ' +  ' '.join(map(str, args)), file=sys.stderr)
+    print('User Error: ' + ' '.join(map(str, args)), file=sys.stderr)
     sys.exit(-1)
 
 
@@ -164,7 +165,6 @@ def _prim_load_ext(s):
     if not isinstance(s, SString): raise Exception('A string expected')
     ext = __import__(str(s))
     if not hasattr(ext, 'tsi_ext_flag'): raise Exception('Wrong extension name')
-    # TODO: not use global env
     ext.setup(get_global_env())
     return theNil
 
@@ -218,8 +218,5 @@ prim_proc_name_imp = (
 # register names
 for _n, _p in prim_proc_name_imp: _p.name = _n
 
-from . import load_file
-from .core import take_snapshot
+
 from .expression import *
-from .parser import parse_input
-from .environment import get_global_env

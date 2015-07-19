@@ -41,6 +41,10 @@ class SEnvironment:
 
 def setup_environment():
     """Setup a global environment"""
+    from .procedure import prim_proc_name_imp
+    from .expression import theTrue, theFalse, theNil
+    from .core import load_file
+
     global _global_env
     env = _global_env = SEnvironment()
     env.extend(prim_proc_name_imp)
@@ -53,7 +57,3 @@ def setup_environment():
 
 get_global_env = lambda: _global_env
 _global_env = None
-
-from . import load_file
-from .expression import theTrue, theFalse, theNil
-from .procedure import prim_proc_name_imp
