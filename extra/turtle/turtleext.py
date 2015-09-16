@@ -53,14 +53,24 @@ def position():
     return SPair(*turtle.position())
 
 
+def heading():
+    """Return current heading."""
+    return SNumber(turtle.heading())
+
+
 def vec2d_abs(v):
     abs_vec = abs(turtle.Vec2D(v.car, v.cdr))
     return SNumber(int(abs_vec))
 
 
-def setposition(x, y):
+def setposition(x_or_pos, y=None):
     """Set turtle's position to (X,Y), heading unchanged."""
-    turtle.setposition(x, y)
+    if y is None:
+        if not isinstance(x_or_pos, SPair):
+            raise Exception('pair expected')
+        turtle.setposition(x_or_pos.car, x_or_pos.cdr)
+    else:
+        turtle.setposition(x_or_pos, y)
     return theNil
 
 
@@ -155,6 +165,7 @@ _procedures = (
     ('circle', circle),
     ('setposition', setposition), ('setpos', setposition),
     ('position', position), ('pos', position),
+    ('heading', heading),
     ('setheading', setheading),
     ('penup', penup), ('pu', penup),
     ('pendown', pendown), ('pd', pendown),
