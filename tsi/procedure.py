@@ -25,7 +25,8 @@ class SPrimitiveProc(SProc):
         except TypeError as e:  # wrong number of args
             # a trick: use Python's error message
             msg = str(e).split()
-            if not (len(msg) > 1 and msg[1] in ('takes', 'missing')): raise
+            if not (len(msg) > 1 and msg[1] in ('takes', 'missing')):
+                raise
             msg = tuple(filter(lambda x: x != 'positional', msg))
             raise Exception('%s %s' % (self.name, ' '.join(msg[1:])))
         except Exception as e:  # add name after message
@@ -47,7 +48,7 @@ class SCompoundProc(SProc):
     def apply(self, operands):
         if len(self.parameters) != len(operands):
             raise Exception('Wrong number of args -- APPLY (%s)' % str(self))
-        new_env = self.env.makeExtend(zip(self.parameters, operands))
+        new_env = self.env.make_extend(zip(self.parameters, operands))
         # eliminate all tail call, including tail recursion
         return EvalRequest(self.body, new_env, as_value=True)
 
@@ -62,17 +63,20 @@ class SContinuation(SProc):
         return '<continuation>'
 
     def apply(self, operands):
-        if len(operands) > 1: raise Exception('Too many argument for continuation')
+        if len(operands) > 1:
+            raise Exception('Too many argument for continuation')
         raise ContinuationInvoked(self.snapshot, operands[0] if operands else theNil)
 
 
 def _prim_add(*args):
-    if len(args) == 0: raise Exception('Too few arguments')
+    if len(args) == 0:
+        raise Exception('Too few arguments')
     return SNumber(sum(args))
 
 
 def _prim_sub(*args):
-    if len(args) == 0: raise Exception('Too few arguments')
+    if len(args) == 0:
+        raise Exception('Too few arguments')
     if len(args) == 1:
         return SNumber(-args[0])
     else:
@@ -101,9 +105,11 @@ def _prim_not(obj):
 def _gen_prim_cmp(cmp):
     """Used to generate <, <=, =, >, >="""
     def template(*args):
-        if len(args) < 2: raise Exception('Too few arguments')
+        if len(args) < 2:
+            raise Exception('Too few arguments')
         for x, y in zip(args, args[1:]):
-            if not cmp(x, y): return theFalse
+            if not cmp(x, y):
+                return theFalse
         return theTrue
 
     return SPrimitiveProc(template)
@@ -112,7 +118,8 @@ def _gen_prim_cmp(cmp):
 def _gen_pair_dr(op):
     """Used to generate shortcuts like cadr."""
     def template(pair):
-        if pair.__class__ != SPair: raise Exception('Not a pair')
+        if pair.__class__ != SPair:
+            raise Exception('Not a pair')
         return op(pair)
 
     return SPrimitiveProc(template)
@@ -120,7 +127,8 @@ def _gen_pair_dr(op):
 
 def _gen_pair_set(set_func):
     def template(pair, value):
-        if pair.__class__ != SPair: raise Exception('Not a pair')
+        if pair.__class__ != SPair:
+            raise Exception('Not a pair')
         set_func(pair, value)
         return theNil
 
@@ -133,7 +141,7 @@ def _prim_list(*args):
 
 def _prim_apply(proc, args):
     try:
-        args = args.toPyList()
+        args = args.to_py_list()
     except AttributeError:
         raise Exception('Arguments should be a list')
     try:
@@ -144,7 +152,7 @@ def _prim_apply(proc, args):
 
 def _prim_read():
     make_symbols = lambda exp: (analyze(exp) if exp.__class__ == str
-                                else SPair.makeList([make_symbols(i) for i in exp]))
+                                else SPair.make_list([make_symbols(i) for i in exp]))
 
     return make_symbols(parse_input())
 
@@ -155,16 +163,19 @@ def _prim_error(*args):
 
 
 def _prim_load(s):
-    if not isinstance(s, SString): raise Exception('A string expected')
+    if not isinstance(s, SString):
+        raise Exception('A string expected')
     load_file(s.string)
     return theNil
 
 
 def _prim_load_ext(s):
     """Load a extension module written in Python."""
-    if not isinstance(s, SString): raise Exception('A string expected')
+    if not isinstance(s, SString):
+        raise Exception('A string expected')
     ext = __import__(str(s))
-    if not hasattr(ext, 'tsi_ext_flag'): raise Exception('Wrong extension name')
+    if not hasattr(ext, 'tsi_ext_flag'):
+        raise Exception('Wrong extension name')
     ext.setup(get_global_env())
     return theNil
 
@@ -216,7 +227,8 @@ prim_proc_name_imp = (
 )
 
 # register names
-for _n, _p in prim_proc_name_imp: _p.name = _n
+for _n, _p in prim_proc_name_imp:
+    _p.name = _n
 
 
 from .expression import *

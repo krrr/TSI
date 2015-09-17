@@ -19,15 +19,15 @@ def parse(s, multi_exp=False):
         apply this function) in matched parenthesis. Else, return the first token."""
         token = tokens.pop(0)
         if token == '(':
-            L = []
+            level_lst = []  # tokens from current level (depth)
             while tokens[0] != ')':
-                L.append(read_from_tokens(tokens))
+                level_lst.append(read_from_tokens(tokens))
             del tokens[0]  # remove ')'
-            return tuple(L)
+            return tuple(level_lst)
         elif token == ')':
             raise Exception("Parenthesis doesn't match")
         elif token == "'":  # quote before left parenthesis
-            return 'quote', read_from_tokens(tokens)
+            return ('quote', read_from_tokens(tokens))
         else:  # atom may starts with "'"
             return ('quote', token[1:]) if token.startswith("'") else token
 

@@ -19,13 +19,15 @@ class EvalRequest:
         self.caller = None  # the SExp which made this request, set by _eval_iterator
         self.as_value = as_value  # whether last exp of seq should be the caller's value
         # control flags set by caller
-        for k, v in kwargs.items(): setattr(self, k, v)
+        for k, v in kwargs.items():
+            setattr(self, k, v)
 
     def get(self, i=0):
         """Get evaluated expressions."""
         return self.seq[i]
 
-    def getAll(self): return self.seq
+    def get_all(self):
+        return self.seq
 
 
 class ContinuationInvoked(Exception):
@@ -107,7 +109,8 @@ def load_file(path):
     env = get_global_env()
     with open(path, encoding='utf-8') as f:
         comment_free = ''.join(map(lambda l: l.partition(';')[0], f))
-        for i in parse(comment_free, multi_exp=True): eval(i, env)
+        for i in parse(comment_free, multi_exp=True):
+            eval(i, env)
 
 
 from .expression import analyze

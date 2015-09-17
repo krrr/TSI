@@ -18,14 +18,17 @@ def driver_loop():
         print(IN_PROMPT, end='')
         try:
             out = eval(parse_input(), the_global_env)
-            if out is not theNil: print(out)
+            if out is not theNil:
+                print(out)
         except KeyboardInterrupt:
             print()
         except EOFError:
             sys.exit(0)
         except Exception as e:
-            if DEBUG: print_exc()
-            else: print('Error: %s' % e, file=sys.stderr)
+            if DEBUG:
+                print_exc()
+            else:
+                print('Error: %s' % e, file=sys.stderr)
 
 
 def main_entry():

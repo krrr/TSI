@@ -2,39 +2,39 @@ from os import path
 
 
 class SEnvironment:
-    def __init__(self, enclosing=None, vars=None):
+    def __init__(self, enclosing=None, vars_=None):
         self.enclosing = enclosing
-        self.vars = vars if vars else {}
+        self.vars = vars_ or {}
 
     def __repr__(self):
         return 'SEnv(%s)' % 'global' if self.enclosing is None else ''
 
-    def makeExtend(self, varValPairs):
+    def make_extend(self, var_val_pairs):
         """Make a new environment whose enclosing is this one. This equals
         extend-environment in SICP."""
-        return SEnvironment(self, dict(varValPairs))
+        return SEnvironment(self, dict(var_val_pairs))
 
-    def extend(self, varValPairs):
+    def extend(self, var_val_pairs):
         """Extend this environment."""
-        self.vars.update(dict(varValPairs))
+        self.vars.update(dict(var_val_pairs))
 
-    def getVarValue(self, var):
+    def get_var_value(self, var):
         if var in self.vars:
             return self.vars[var]
         elif self.enclosing is None:
             raise Exception('Unbound variable (%s)' % var)
         else:
-            return self.enclosing.getVarValue(var)
+            return self.enclosing.get_var_value(var)
 
-    def setVarValue(self, var, value):
+    def set_var_value(self, var, value):
         if var in self.vars:
             self.vars[var] = value
         elif self.enclosing is None:
             raise Exception('Setting unbound variable (%s)' % var)
         else:
-            return self.enclosing.setVarValue(var, value)
+            return self.enclosing.set_var_value(var, value)
 
-    def defVar(self, var, value):
+    def def_var(self, var, value):
         """Define a variable (or set if exists) in *this* environment."""
         self.vars[var] = value
 
