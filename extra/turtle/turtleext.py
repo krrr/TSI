@@ -8,9 +8,31 @@ tsi_ext_flag = None
 
 
 def setup(env):
+    procedures = (
+        ('forward', forward), ('fd', forward),
+        ('backward', backward), ('back', backward),
+        ('left', left),
+        ('right', right),
+        ('circle', circle),
+        ('setposition', setposition), ('setpos', setposition), ('set-pos', setposition),
+        ('position', position), ('pos', position),
+        ('heading', heading),
+        ('setheading', setheading), ('set-heading', setheading),
+        ('penup', penup), ('pu', penup), ('pen-up', penup),
+        ('pendown', pendown), ('pd', pendown), ('pen-down', pendown),
+        ('showturtle', showturtle), ('show-turtle', showturtle),
+        ('hideturtle', hideturtle), ('hide-turtle', hideturtle),
+        ('clear', clear),
+        ('color', color),
+        ('begin_fill', begin_fill), ('begin-fill', begin_fill),
+        ('end_fill', end_fill), ('end-fill', end_fill),
+        ('vec2d_abs', vec2d_abs), ('vec2d-abs', vec2d_abs),
+        ('exitonclick', exitonclick), ('exit-on-click', exitonclick),
+        ('speed', speed),
+        ('tracer', tracer),
+    )
     # add procedures to env
-    pairs = [(name, SPrimitiveProc(imp, name)) for (name, imp) in _procedures]
-    env.extend(pairs)
+    env.extend((name, SPrimitiveProc(imp, name)) for (name, imp) in procedures)
 
 
 def forward(n):
@@ -113,9 +135,11 @@ def clear():
 def color(*args):
     """Set the color to C, a symbol such as red or '#ffc0c0' (representing
     hexadecimal red, green, and blue values."""
-    if not args: raise NotImplementedError('0 arg not done yet')
+    if not args:
+        return SPair(*map(SString, turtle.color()))
     for i in args:
-        if not isinstance(i, SString): raise Exception('string expected')
+        if not isinstance(i, SString):
+            raise Exception('string expected')
 
     turtle.color(*map(str, args))
     return theNil
@@ -155,28 +179,3 @@ def tracer(n=None, delay=None):
     else:
         turtle.tracer(n, delay)
         return theNil
-
-
-_procedures = (
-    ('forward', forward), ('fd', forward),
-    ('backward', backward), ('back', backward),
-    ('left', left),
-    ('right', right),
-    ('circle', circle),
-    ('setposition', setposition), ('setpos', setposition),
-    ('position', position), ('pos', position),
-    ('heading', heading),
-    ('setheading', setheading),
-    ('penup', penup), ('pu', penup),
-    ('pendown', pendown), ('pd', pendown),
-    ('showturtle', showturtle),
-    ('hideturtle', hideturtle),
-    ('clear', clear),
-    ('color', color),
-    ('begin_fill', begin_fill),
-    ('end_fill', end_fill),
-    ('vec2d_abs', vec2d_abs),
-    ('exitonclick', exitonclick),
-    ('speed', speed),
-    ('tracer', tracer),
-)

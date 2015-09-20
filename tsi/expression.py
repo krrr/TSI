@@ -40,15 +40,9 @@ class SReal(float, SNumber):
     pass
 
 
-class SString(SSelfEvalExp):
-    def __init__(self, exp):
-        self.string = exp[1:-1]
-
-    def __str__(self):
-        return self.string
-
-    def __eq__(self, other):
-        return isinstance(other, SString) and self.string == other.string
+class SString(str, SSelfEvalExp):
+    def __new__(cls, exp):
+        return str.__new__(cls, exp[1:-1] if exp.startswith('"') else exp)
 
 
 class STrue(SSelfEvalExp):
