@@ -2,8 +2,7 @@
 # from berkeley's SICP course
 import turtle
 from tsi.expression import SNumber, SString, SPair, theNil
-from tsi.procedure import SPrimitiveProc
-
+from tsi.procedure import SPrimitiveProc, extract_instance
 tsi_ext_flag = None
 
 
@@ -35,147 +34,146 @@ def setup(env):
     env.extend((name, SPrimitiveProc(imp, name)) for (name, imp) in procedures)
 
 
-def forward(n):
+def forward(operands, *__):
     """Move the turtle forward a distance N units on the current heading."""
-    turtle.forward(n)
+    turtle.forward(*operands)
     return theNil
 
 
-def backward(n):
+def backward(operands, *__):
     """Move the turtle backward a distance N units on the current heading,
     without changing direction."""
-    turtle.backward(n)
+    turtle.backward(*operands)
     return theNil
 
 
-def left(n):
+def left(operands, *__):
     """Rotate the turtle's heading N degrees counterclockwise."""
-    turtle.left(n)
+    turtle.left(*operands)
     return theNil
 
 
-def right(n):
+def right(operands, *__):
     """Rotate the turtle's heading N degrees clockwise."""
-    turtle.right(n)
+    turtle.right(*operands)
     return theNil
 
 
-def circle(r, extent=None):
+def circle(operands, *__):
     """Draw a circle with center R units to the left of the turtle (i.e.,
     right if N is negative. If EXTENT is not None, then draw EXTENT degrees
     of the circle only. Draws in the clockwise direction if R is negative,
     and otherwise counterclockwise, leaving the turtle facing along the
     arc at its end."""
-    turtle.circle(r, extent)
+    turtle.circle(*operands)
     return theNil
 
 
-def position():
+def position(operands, *__):
     """Return current position as a pair."""
-    return SPair(*turtle.position())
+    return SPair(*turtle.position(*operands))
 
 
-def heading():
+def heading(operands, *__):
     """Return current heading."""
-    return SNumber(turtle.heading())
+    return SNumber(turtle.heading(*operands))
 
 
-def vec2d_abs(v):
+def vec2d_abs(operands, *__):
+    v = extract_instance(operands, SPair)
     abs_vec = abs(turtle.Vec2D(v.car, v.cdr))
-    return SNumber(int(abs_vec))
+    return SNumber(abs_vec)
 
 
-def setposition(x_or_pos, y=None):
+def setposition(operands, *__):
     """Set turtle's position to (X,Y), heading unchanged."""
-    if y is None:
-        if not isinstance(x_or_pos, SPair):
-            raise Exception('pair expected')
-        turtle.setposition(x_or_pos.car, x_or_pos.cdr)
+    if len(operands) == 1:
+        pos = extract_instance(operands, SPair)
+        turtle.setposition(pos.car, pos.cdr)
     else:
-        turtle.setposition(x_or_pos, y)
+        turtle.setposition(*operands)
     return theNil
 
 
-def setheading(h):
+def setheading(operands, *__):
     """Set the turtle's heading H degrees clockwise from north (up)."""
-    turtle.setheading(h)
+    turtle.setheading(*operands)
     return theNil
 
 
-def penup():
+def penup(operands, *__):
     """Raise the pen, so that the turtle does not draw."""
-    turtle.penup()
+    turtle.penup(*operands)
     return theNil
 
 
-def pendown():
+def pendown(operands, *__):
     """Lower the pen, so that the turtle starts drawing."""
-    turtle.pendown()
+    turtle.pendown(*operands)
     return theNil
 
 
-def showturtle():
+def showturtle(operands, *__):
     """Make turtle visible."""
-    turtle.showturtle()
+    turtle.showturtle(*operands)
     return theNil
 
 
-def hideturtle():
+def hideturtle(operands, *__):
     """Make turtle invisible."""
-    turtle.hideturtle()
+    turtle.hideturtle(*operands)
     return theNil
 
 
-def clear():
+def clear(operands, *__):
     """Clear the drawing, leaving the turtle unchanged."""
-    turtle.clear()
+    turtle.clear(*operands)
     return theNil
 
 
-def color(*args):
+def color(operands, *__):
     """Set the color to C, a symbol such as red or '#ffc0c0' (representing
     hexadecimal red, green, and blue values."""
-    if not args:
+    if not operands:
         return SPair(*map(SString, turtle.color()))
-    for i in args:
-        if not isinstance(i, SString):
-            raise Exception('string expected')
 
-    turtle.color(*map(str, args))
+    if not all(isinstance(i, SString) for i in operands):
+        raise Exception('string expected')
+    turtle.color(*map(str, operands))
     return theNil
 
 
-def begin_fill():
+def begin_fill(operands, *__):
     """Start a sequence of moves that outline a shape to be filled."""
-    turtle.begin_fill()
+    turtle.begin_fill(*operands)
     return theNil
 
 
-def end_fill():
+def end_fill(operands, *__):
     """Fill in shape drawn since last begin_fill."""
-    turtle.end_fill()
+    turtle.end_fill(*operands)
     return theNil
 
 
-def exitonclick():
+def exitonclick(operands, *__):
     """Wait for a click on the turtle window, and then close it."""
-    turtle.exitonclick()
+    turtle.exitonclick(*operands)
     return theNil
 
 
-def speed(s):
+def speed(operands, *__):
     """Set the turtle's animation speed as indicated by S (an integer in
     0-10, with 0 indicating no animation (lines draw instantly), and 1-10
     indicating faster and faster movement."""
-    turtle.speed(s)
+    turtle.speed(*operands)
     return theNil
 
 
-def tracer(n=None, delay=None):
+def tracer(operands, *__):
     """If n is given, only each n-th regular screen update is really performed.
     Also set delay if given."""
-    if n is None and delay is None:
+    if not operands:
         return SNumber(turtle.tracer())
     else:
-        turtle.tracer(n, delay)
+        turtle.tracer(*operands)
         return theNil

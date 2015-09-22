@@ -33,12 +33,13 @@ def parse(s, multi_exp=False):
 
     if not multi_exp and not s:
         raise ValueError('Nothing to parse')
-    tokens = _tokenize.findall('(%s)' % s if multi_exp else s)
+    s = ''.join(map(lambda l: l.partition(';')[0], s.split('\n')))
+    s_tokens = _tokenize.findall('(%s)' % s if multi_exp else s)
     try:
-        ret = read_from_tokens(tokens)
+        ret = read_from_tokens(s_tokens)
     except IndexError:
         raise ValueError('Too few right parentheses')
-    if tokens:
+    if s_tokens:
         raise Exception('Too many right parentheses or more than one expression')
     return ret
 

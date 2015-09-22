@@ -1,11 +1,97 @@
-from collections import deque
-from .parser import parse
-from .environment import get_global_env
-
-
 class SObject:
     """Anything in the Scheme world is SObject. SObject know its text
     representation either by implementing manually or using Python's."""
+
+
+class SExp(SObject):
+    """The base class of all expressions. Analyzing is done in constructor,
+    and evaluation is done in __call__ method. SExp represents an AST."""
+    def __call__(self, env, evaluator, req=None):
+        """Evaluate this expression in the given environment and return result.
+        If it's necessary to evaluate other expressions, an EvalRequest() will
+        be returned. After eval has done, it will resume us with the result
+        (by passing "exp" argument)."""
+        raise NotImplementedError
+
+
+class SProc(SObject):
+    """The base class of all procedures."""
+    def apply(self, operands, env, evaluator):
+        raise NotImplementedError
+
+
+class SPrimitiveProc(SProc):
+    def __init__(self, implement, name=None):
+        self._imp = implement
+        self.name = name
+
+    def __str__(self):
+        return '<primitive-procedure %s>' % self.name
+
+    def apply(self, operands, env, evaluator):
+        try:
+            return self._imp(operands, env, evaluator)
+        except Exception as e:  # add name after message
+            raise Exception('%s -- %s' % (str(e), self.name))
+
+
+class SCompoundProc(SProc):
+    def __init__(self, parameters, body, env):
+        self.parameters = parameters
+        self.body = body  # body should already be analyzed
+        self.env = env
+        self.name = None  # assigned once by define form
+
+    def __str__(self):
+        name = self.name + ' ' if self.name else ''
+        para = '(param: %s)' % ','.join(self.parameters) if self.parameters else '(no-param)'
+        return '<compound-procedure %s%s>' % (name, para)
+
+    def apply(self, operands, *__):
+        # because of static scope, env argument is ignored
+        if len(self.parameters) != len(operands):
+            raise Exception('Wrong number of args -- APPLY (%s)' % str(self))
+        new_env = self.env.make_extend(zip(self.parameters, operands))
+        # eliminate all tail call, including tail recursion
+        return EvalRequest(self.body, new_env, as_value=True)
+
+
+class SEnvironment:
+    def __init__(self, enclosing=None, vars_=None):
+        self.enclosing = enclosing
+        self.vars = vars_ or {}
+
+    def __repr__(self):
+        return 'SEnv(%s)' % 'global' if self.enclosing is None else ''
+
+    def make_extend(self, var_val_pairs):
+        """Make a new environment whose enclosing is this one. This equals
+        extend-environment in SICP."""
+        return SEnvironment(self, dict(var_val_pairs))
+
+    def extend(self, var_val_pairs):
+        """Extend this environment."""
+        self.vars.update(dict(var_val_pairs))
+
+    def get_var_value(self, var):
+        if var in self.vars:
+            return self.vars[var]
+        elif self.enclosing is None:
+            raise Exception('Unbound variable (%s)' % var)
+        else:
+            return self.enclosing.get_var_value(var)
+
+    def set_var_value(self, var, value):
+        if var in self.vars:
+            self.vars[var] = value
+        elif self.enclosing is None:
+            raise Exception('Setting unbound variable (%s)' % var)
+        else:
+            return self.enclosing.set_var_value(var, value)
+
+    def def_var(self, var, value):
+        """Define a variable (or set if exists) in *this* environment."""
+        self.vars[var] = value
 
 
 class EvalRequest:
@@ -32,85 +118,3 @@ class EvalRequest:
 
 class ContinuationInvoked(Exception):
     pass
-
-
-def _eval_iterator(stack, env_stack, ret=None):
-    """The eval, but only EvalRequest handled here. This part is aimed only to
-    break Python's recursion limit. The real implementation of expressions is
-    in SExp.__call__."""
-    # sys.setrecursionlimit wins if we can set stack limit of interpreter...
-    while stack:
-        e = stack.pop()  # e should be instance of SExp or EvalReq
-        if e.__class__ == EvalRequest:
-            if e.idx != -1:  # retrieve evaluated exp (except the first time)
-                e.seq[e.idx] = ret
-
-            if e.idx < len(e.seq) - 2 or (e.idx == len(e.seq) - 2 and not e.as_value):
-                e.idx += 1
-                stack.extend((e, e.seq[e.idx]))
-            else:  # request finished
-                env_stack.pop()  # Continuation.Invoke may happen, so pop first
-                if e.idx == len(e.seq) - 2 and e.as_value:
-                    # Not eval the last expression, but let it be the value of
-                    # the caller. This prevent stack from growing and achieved TCO.
-                    caller = e.seq[-1]
-                    ret = caller(e.env)
-                else:  # pass result back
-                    caller = e.caller
-                    ret = caller(e.env, e)
-
-                if ret.__class__ == EvalRequest:
-                    # if result is still EvalReq, replace current EvalReq with this
-                    ret.caller = caller
-                    env_stack.append(ret.env)
-                    stack.append(ret)
-        else:
-            uo = e(env_stack[-1])
-            if uo.__class__ == EvalRequest:
-                uo.caller = e
-                env_stack.append(uo.env)
-                stack.append(uo)
-            else:
-                ret = uo
-    assert len(env_stack) == 1, 'only global env remains eventually'
-    assert isinstance(ret, SObject)
-    return ret
-
-
-def eval(exp, env):
-    eval.stack = deque([analyze(exp)])
-    eval.env_stack = deque([env])
-    call_cc_value = None  # the value of (call/cc proc)
-
-    # recover the stack from snapshot on continuation invoked
-    while True:
-        try:
-            return _eval_iterator(eval.stack, eval.env_stack, ret=call_cc_value)
-        except ContinuationInvoked as e:
-            restore_snapshot(e.args[0])
-            call_cc_value = e.args[1]
-
-
-# apply still alive, it's hiding in SExpApplication
-
-
-def take_snapshot():
-    # there may be potential bugs because "real" copy is not performed
-    # but it works now...
-    return tuple(eval.stack), tuple(eval.env_stack)
-
-
-def restore_snapshot(ss):
-    eval.stack, eval.env_stack = tuple(map(deque, ss))
-
-
-def load_file(path):
-    """Execute a script in the global environment(problematic?)."""
-    env = get_global_env()
-    with open(path, encoding='utf-8') as f:
-        comment_free = ''.join(map(lambda l: l.partition(';')[0], f))
-        for i in parse(comment_free, multi_exp=True):
-            eval(i, env)
-
-
-from .expression import analyze
