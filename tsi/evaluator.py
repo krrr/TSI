@@ -42,6 +42,8 @@ class Evaluator:
     def eval(self, s, script=False):
         if not isinstance(s, str):
             raise TypeError('str excepted')
+        if not s:
+            raise ValueError('non-empty str excepted')
         if script:
             return self._eval(tuple(map(analyze, parse(s, multi_exp=True))), self.global_env)
         else:
