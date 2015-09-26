@@ -5,6 +5,10 @@ import re
 _tokenize = re.compile(r'\(|\)|"[^"]*"|[^\(\)\s"]+')
 
 
+class IncompleteInputError(ValueError):
+    pass
+
+
 def parse(s, multi_exp=False):
     """Parse a string that contains scheme expression. Multiple expressions
     is allowed only if multi_exp is True. Result should be a "cell", which
@@ -25,31 +29,31 @@ def parse(s, multi_exp=False):
             del tokens[0]  # remove ')'
             return tuple(level_lst)
         elif token == ')':
-            raise Exception("Parenthesis doesn't match")
+            raise ValueError("Parenthesis doesn't match")
         elif token == "'":  # quote before left parenthesis
             return ('quote', read_from_tokens(tokens))
         else:  # atom may starts with "'"
             return ('quote', token[1:]) if token.startswith("'") else token
 
     if not multi_exp and not s:
-        raise ValueError('Nothing to parse')
+        raise IncompleteInputError('Nothing to parse')
     s = ''.join(map(lambda l: l.partition(';')[0], s.split('\n')))
     s_tokens = _tokenize.findall('(%s)' % s if multi_exp else s)
     try:
         ret = read_from_tokens(s_tokens)
     except IndexError:
-        raise ValueError('Too few right parentheses')
+        raise IncompleteInputError('Too few right parentheses')
     if s_tokens:
-        raise Exception('Too many right parentheses or more than one expression')
+        raise ValueError('Too many right parentheses or more than one expression')
     return ret
 
 
 def parse_input():
     """This is similar to Scheme's read, except that all atom (such as +, 23, x)
     is string."""
-    s = [input()]
+    s = input()
     while True:
         try:
-            return parse(''.join(s))
-        except ValueError:
-            s += [' ', input()]
+            return parse(s)
+        except IncompleteInputError:
+            s += ' ' + input()
