@@ -1,8 +1,8 @@
 import re
+from collections import deque
 
-# first two match parentheses, the third match string like "www www", the last
-# match the rest (symbol)
-_tokenize = re.compile(r'\(|\)|"[^"]*"|[^\(\)\s"]+')
+# left parenthesis | right parenthesis | string like "www www" | quote | symbol
+_tokenize = re.compile(r'''\(|\)|"[^"]*"|'|[^\(\)\s"]+''')
 
 
 class IncompleteInputError(ValueError):
@@ -18,32 +18,32 @@ def parse(s, multi_exp=False):
         (define aa 1) => ('define', 'aa', '1')
         'a 'b => (('quote', 'a'), ('quote', 'b'))  # multi_exp enabled"""
     # taken from lis.py, my old solution has been completely beaten by this...
-    def read_from_tokens(tokens):
+    def read_from_tokens():
         """If tokens starts with left parenthesis, return all tokens (recursively
         apply this function) in matched parenthesis. Else, return the first token."""
-        token = tokens.pop(0)
+        token = tokens.popleft()
         if token == '(':
             level_lst = []  # tokens from current level (depth)
             while tokens[0] != ')':
-                level_lst.append(read_from_tokens(tokens))
-            del tokens[0]  # remove ')'
+                level_lst.append(read_from_tokens())
+            assert tokens.popleft() == ')'
             return tuple(level_lst)
         elif token == ')':
             raise ValueError("Parenthesis doesn't match")
-        elif token == "'":  # quote before left parenthesis
-            return ('quote', read_from_tokens(tokens))
-        else:  # atom may starts with "'"
-            return ('quote', token[1:]) if token.startswith("'") else token
+        elif token == "'":
+            return ('quote', read_from_tokens())
+        else:
+            return token
 
     if not multi_exp and not s:
         raise IncompleteInputError('Nothing to parse')
     s = ''.join(map(lambda l: l.partition(';')[0], s.split('\n')))
-    s_tokens = _tokenize.findall('(%s)' % s if multi_exp else s)
+    tokens = deque(_tokenize.findall('(%s)' % s if multi_exp else s))
     try:
-        ret = read_from_tokens(s_tokens)
+        ret = read_from_tokens()
     except IndexError:
         raise IncompleteInputError('Too few right parentheses')
-    if s_tokens:
+    if tokens:
         raise ValueError('Too many right parentheses or more than one expression')
     return ret
 
