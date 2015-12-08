@@ -6,7 +6,7 @@ from . import __version__
 from .core import SEnvironment, EvalRequest, ContinuationInvoked, SObject
 from .parser import parse, parse_input
 from .expression import theNil, analyze, theTrue, theFalse
-from .procedure import prim_proc_name_imp
+from .primitives import prim_proc_name_imp
 
 
 class Evaluator:

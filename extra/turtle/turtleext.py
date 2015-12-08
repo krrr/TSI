@@ -2,7 +2,7 @@
 # from berkeley's SICP course
 import turtle
 from tsi.expression import SNumber, SString, SPair, theNil
-from tsi.procedure import SPrimitiveProc, extract_instance
+from tsi.primitives import SPrimitiveProc, extract_instance
 tsi_ext_flag = None
 
 
