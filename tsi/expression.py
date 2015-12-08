@@ -1,20 +1,9 @@
 import re
-from .core import EvalRequest, SObject
-
-
-class SExp(SObject):
-    """The base class of all expressions. Analyzing is done in constructor,
-    and evaluation is done in __call__ method. SExp represents an AST."""
-    def __call__(self, env):
-        """Evaluate this expression in the given environment and return result.
-        If it's necessary to evaluate other expressions, an EvalRequest() will
-        be returned. After eval has done, it will resume us with the result
-        (by passing "exp" argument)."""
-        raise NotImplementedError
+from .core import EvalRequest, SObject, SExp, SProc, SCompoundProc, ContinuationInvoked
 
 
 class SSelfEvalExp(SExp):
-    def __call__(self, __):
+    def __call__(self, *__):
         return self
 
 
@@ -40,23 +29,21 @@ class SReal(float, SNumber):
     pass
 
 
-class SString(SSelfEvalExp):
-    def __init__(self, exp):
-        self.string = exp[1:-1]
-
-    def __str__(self):
-        return self.string
-
-    def __eq__(self, other):
-        return isinstance(other, SString) and self.string == other.string
+class SString(str, SSelfEvalExp):
+    def __new__(cls, exp):
+        return str.__new__(cls, exp[1:-1] if exp.startswith('"') else exp)
 
 
-class STrue(SSelfEvalExp):
+class SBool(SSelfEvalExp):
+    pass
+
+
+class STrue(SBool):
     def __str__(self):
         return '#t'
 
 
-class SFalse(SSelfEvalExp):
+class SFalse(SBool):
     def __str__(self):
         return '#f'
 
@@ -65,7 +52,7 @@ class SSymbol(SExp):
     def __init__(self, exp):
         self.name = exp
 
-    def __call__(self, env):
+    def __call__(self, env, *__):
         return env.get_var_value(self.name)
 
     def __str__(self):
@@ -77,7 +64,7 @@ class SSymbol(SExp):
 
 class SNil(SObject):
     def __str__(self):
-        return "()"
+        return '()'
 
 
 class SPair(SObject):
@@ -123,7 +110,7 @@ class SExpApplication(SExp):
         self.operator = analyze(operator)
         self.operands = tuple(map(analyze, operands))
 
-    def __call__(self, env, req=None):
+    def __call__(self, env, evaluator, req=None):
         """The apply."""
         if req is None:
             return EvalRequest((self.operator,) + self.operands, env)
@@ -131,20 +118,33 @@ class SExpApplication(SExp):
             proc, *operands = req.get_all()
 
             try:
-                return proc.apply(operands)
+                return proc.apply(operands, env, evaluator)
             except AttributeError:
                 raise Exception('Unknown procedure type -- APPLY (%s)' % str(proc))
 
 
 class SExpCallCc(SExp):
+    class SContinuation(SProc):
+        """Continuation is a special procedure that has zero or one argument."""
+        def __init__(self, snapshot):
+            self.snapshot = snapshot
+
+        def __str__(self):
+            return '<continuation>'
+
+        def apply(self, operands, *__):
+            if len(operands) > 1:
+                raise Exception('Too many argument for continuation')
+            raise ContinuationInvoked(self.snapshot, operands[0] if operands else theNil)
+
     def __init__(self, exp):
         if len(exp) != 2:
             raise Exception('call/cc take exactly one argument')
         self.arg = analyze(exp[1])
 
-    def __call__(self, env):
+    def __call__(self, env, evaluator, *__):
         try:
-            return self.arg(env).apply([SContinuation()])
+            return self.arg(env).apply([SExpCallCc.SContinuation(evaluator.take_snapshot())], env)
         except AttributeError:
             raise Exception('call/cc should take a procedure')
 
@@ -157,7 +157,7 @@ class SExpIf(SExp):
         self.predicate, self.consequent = analyze(pre), analyze(con)
         self.alternative = analyze(alter[0]) if alter else theFalse
 
-    def __call__(self, env, req=None):
+    def __call__(self, env, __, req=None):
         if req is None:
             return EvalRequest(self.predicate, env)
         else:
@@ -171,7 +171,7 @@ class SExpBegin(SExp):
             raise Exception('Malformed begin')
         self.body = tuple(map(analyze, exp[1:]))
 
-    def __call__(self, env):
+    def __call__(self, env, *__):
         return EvalRequest(self.body, env, as_value=True)
 
 
@@ -181,7 +181,7 @@ class SExpAssignment(SExp):
             raise Exception('Malformed assignment')
         self.variable, self.value = exp[1], analyze(exp[2])
 
-    def __call__(self, env, req=None):
+    def __call__(self, env, __, req=None):
         if req is None:
             return EvalRequest(self.value, env)
         else:
@@ -203,7 +203,7 @@ class SExpDefinition(SExp):
         except (IndexError, ValueError):
             raise Exception('Malformed define')
 
-    def __call__(self, env, req=None):
+    def __call__(self, env, __, req=None):
         if req is None:
             return EvalRequest(self.value, env)
         else:
@@ -221,7 +221,7 @@ class SExpLambda(SExp):
         param, *body = exp[1:]
         self.parameters, self.body = param, tuple(map(analyze, body))
 
-    def __call__(self, env):
+    def __call__(self, env, *__):
         return SCompoundProc(self.parameters, self.body, env)
 
 
@@ -231,7 +231,7 @@ class SExpQuote(SExp):
             raise Exception('Malformed quote')
         self.datum = self.walker(exp[1])
 
-    def __call__(self, __):
+    def __call__(self, *__):
         return self.datum
 
     @staticmethod
@@ -245,7 +245,7 @@ class SExpOr(SExp):
     def __init__(self, exp):
         self.seq = tuple(map(analyze, exp[1:]))
 
-    def __call__(self, env, req=None):
+    def __call__(self, env, __, req=None):
         if req is None:
             return EvalRequest(self.seq[0], env, our_idx=0) if self.seq else theFalse
         else:
@@ -262,7 +262,7 @@ class SExpAnd(SExp):
     def __init__(self, exp):
         self.seq = tuple(map(analyze, exp[1:]))
 
-    def __call__(self, env, req=None):
+    def __call__(self, env, __, req=None):
         if req is None:
             return EvalRequest(self.seq[0], env, our_idx=0) if self.seq else theTrue
         else:
@@ -286,7 +286,7 @@ class SExpCond(SExp):
         except IndexError:
             raise Exception('Malformed cond')
 
-    def __call__(self, env):
+    def __call__(self, env, *__):
         return EvalRequest(self.body, env, as_value=True)
 
     @staticmethod
@@ -322,7 +322,7 @@ class SExpLet(SExp):
         except (IndexError, ValueError):
             raise Exception('Malformed let')
 
-    def __call__(self, env):
+    def __call__(self, env, *__):
         return EvalRequest(self.app, env, as_value=True)
 
     @staticmethod
@@ -332,7 +332,7 @@ class SExpLet(SExp):
         return app_exp
 
 
-special_forms = {
+_special_forms = {
     'call/cc': SExpCallCc,
     'call-with-current-continuation': SExpCallCc,
     'if': SExpIf,
@@ -367,12 +367,9 @@ def analyze(exp):
             return SSymbol(exp)  # treat symbols as variables
     elif isinstance(exp, tuple) and exp:
         name = exp[0]
-        if name in special_forms:
-            return special_forms[name](exp)
+        if name in _special_forms:
+            return _special_forms[name](exp)
         else:
             # exp can only be application
             return SExpApplication(exp)
     raise Exception('Unknown expression type -- ANALYZE (%s)' % str(exp))
-
-
-from .procedure import SCompoundProc, SContinuation
