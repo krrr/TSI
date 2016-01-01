@@ -44,6 +44,13 @@
 (define (length sequence)
   (accumulate (lambda (x y) (+ y 1)) 0 sequence))
 
+(define (assoc key list)
+  (if (null? list)
+      #f
+      (if (not (pair? (car list)))
+          (error "expected a list of pairs")
+          (if (eq? key (car (car list))) (car list) (assoc key (cdr list))))))
+
 ; car/cdr shortcuts
 (define (cadr pair) (car (cdr pair)))
 (define (caddr pair) (car (cdr (cdr pair))))
