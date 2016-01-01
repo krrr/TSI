@@ -141,8 +141,7 @@ def _prim_read(operands, *__):
 
 
 def _prim_error(operands, *__):
-    print('User Error: ' + ' '.join(map(str, operands)), file=sys.stderr)
-    sys.exit(-1)
+    raise Exception(' '.join(map(str, operands)))
 
 
 def _prim_load(operands, env, evaluator):
@@ -197,7 +196,7 @@ prim_proc_name_imp = (
     ('read', SPrimitiveProc(_prim_read)),
     ('load', SPrimitiveProc(_prim_load)),
     ('load-ext', SPrimitiveProc(_prim_load_ext)),
-    ('error', SPrimitiveProc(_prim_error)),
+    ('error', SPrimitiveProc(_prim_error, err_msg_name=False)),
     ('exit', SPrimitiveProc(lambda *__: sys.exit(0))),
     ('display', SPrimitiveProc(_prim_display)),
     ('print', SPrimitiveProc(lambda operands, *__: print(*operands) or theNil)),

@@ -21,9 +21,11 @@ class SProc(SObject):
 
 
 class SPrimitiveProc(SProc):
-    def __init__(self, implement, name=None):
+    def __init__(self, implement, name=None, err_msg_name=True):
         self._imp = implement
         self.name = name
+        if not err_msg_name:  # don't add procedure name after message
+            self.apply = self.raw_apply
 
     def __str__(self):
         return '<primitive-procedure %s>' % self.name
@@ -31,8 +33,11 @@ class SPrimitiveProc(SProc):
     def apply(self, operands, env, evaluator):
         try:
             return self._imp(operands, env, evaluator)
-        except Exception as e:  # add name after message
+        except Exception as e:
             raise Exception('%s -- %s' % (str(e), self.name))
+
+    def raw_apply(self, operands, env, evaluator):
+        return self._imp(operands, env, evaluator)
 
 
 class SCompoundProc(SProc):

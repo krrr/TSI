@@ -115,6 +115,8 @@ class Evaluator:
 
     def load_file(self, path, env=None):
         """Execute a script in the environment."""
+        if not path.endswith('.scm'):
+            path += '.scm'
         with open(path, encoding='utf-8') as f:
             return self._eval(tuple(map(analyze, parse(f.read(), multi_exp=True))),
                               env or self.global_env)
