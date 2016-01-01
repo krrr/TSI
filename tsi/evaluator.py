@@ -1,9 +1,8 @@
 import os
 import sys
 from collections import deque
-from traceback import print_exc
 from . import __version__
-from .core import SEnvironment, EvalRequest, ContinuationInvoked, SObject
+from .core import SEnvironment, EvalRequest, ContinuationInvoked, SObject, SchemeError
 from .parser import parse, parse_input
 from .expression import theNil, analyze, theTrue, theFalse
 from .primitives import prim_proc_name_imp
@@ -33,11 +32,8 @@ class Evaluator:
                 print()
             except EOFError:
                 sys.exit(0)
-            except Exception as e:
-                if self.debug:
-                    print_exc()
-                else:
-                    print('Error: %s' % e, file=sys.stderr)
+            except SchemeError as e:
+                print('Error: %s' % e, file=sys.stderr)
 
     def eval(self, s, script=False):
         if not isinstance(s, str):

@@ -1,5 +1,6 @@
 import re
-from .core import EvalRequest, SObject, SExp, SProc, SCompoundProc, ContinuationInvoked
+from .core import (EvalRequest, SObject, SExp, SProc, SCompoundProc,
+                   ContinuationInvoked, SchemeError)
 
 
 class SSelfEvalExp(SExp):
@@ -120,7 +121,7 @@ class SExpApplication(SExp):
             try:
                 return proc.apply(operands, env, evaluator)
             except AttributeError:
-                raise Exception('Unknown procedure type -- APPLY (%s)' % str(proc))
+                raise SchemeError('Unknown procedure type -- APPLY (%s)' % str(proc))
 
 
 class SExpCallCc(SExp):
@@ -134,25 +135,25 @@ class SExpCallCc(SExp):
 
         def apply(self, operands, *__):
             if len(operands) > 1:
-                raise Exception('Too many argument for continuation')
+                raise SchemeError('Too many argument for continuation')
             raise ContinuationInvoked(self.snapshot, operands[0] if operands else theNil)
 
     def __init__(self, exp):
         if len(exp) != 2:
-            raise Exception('call/cc take exactly one argument')
+            raise SchemeError('call/cc take exactly one argument')
         self.arg = analyze(exp[1])
 
     def __call__(self, env, evaluator, *__):
         try:
             return self.arg(env).apply([SExpCallCc.SContinuation(evaluator.take_snapshot())], env)
         except AttributeError:
-            raise Exception('call/cc should take a procedure')
+            raise SchemeError('call/cc should take a procedure')
 
 
 class SExpIf(SExp):
     def __init__(self, exp):
         if not 3 <= len(exp) <= 4:
-            raise Exception('Malformed if')
+            raise SchemeError('Malformed if')
         pre, con, *alter = exp[1:]
         self.predicate, self.consequent = analyze(pre), analyze(con)
         self.alternative = analyze(alter[0]) if alter else theFalse
@@ -168,7 +169,7 @@ class SExpIf(SExp):
 class SExpBegin(SExp):
     def __init__(self, exp):
         if len(exp) < 2:
-            raise Exception('Malformed begin')
+            raise SchemeError('Malformed begin')
         self.body = tuple(map(analyze, exp[1:]))
 
     def __call__(self, env, *__):
@@ -178,7 +179,7 @@ class SExpBegin(SExp):
 class SExpAssignment(SExp):
     def __init__(self, exp):
         if len(exp) != 3 or exp[1].__class__ != str:
-            raise Exception('Malformed assignment')
+            raise SchemeError('Malformed assignment')
         self.variable, self.value = exp[1], analyze(exp[2])
 
     def __call__(self, env, __, req=None):
@@ -197,11 +198,11 @@ class SExpDefinition(SExp):
                 self.variable, self.value = var, analyze(value)
             else:  # define function
                 if not exp[2:]:
-                    raise Exception('Malformed define')
+                    raise SchemeError('Malformed define')
                 lambda_exp = ('lambda', exp[1][1:]) + exp[2:]
                 self.variable, self.value = exp[1][0], SExpLambda(lambda_exp)
         except (IndexError, ValueError):
-            raise Exception('Malformed define')
+            raise SchemeError('Malformed define')
 
     def __call__(self, env, __, req=None):
         if req is None:
@@ -217,7 +218,7 @@ class SExpDefinition(SExp):
 class SExpLambda(SExp):
     def __init__(self, exp):
         if len(exp) < 3 or not isinstance(exp[1], tuple):
-            raise Exception('Malformed lambda')
+            raise SchemeError('Malformed lambda')
         param, *body = exp[1:]
         self.parameters, self.body = param, tuple(map(analyze, body))
 
@@ -228,7 +229,7 @@ class SExpLambda(SExp):
 class SExpQuote(SExp):
     def __init__(self, exp):
         if len(exp) != 2:
-            raise Exception('Malformed quote')
+            raise SchemeError('Malformed quote')
         self.datum = self.walker(exp[1])
 
     def __call__(self, *__):
@@ -284,7 +285,7 @@ class SExpCond(SExp):
             clauses = exp[1:]
             self.body = analyze(self._expand_clauses(clauses))
         except IndexError:
-            raise Exception('Malformed cond')
+            raise SchemeError('Malformed cond')
 
     def __call__(self, env, *__):
         return EvalRequest(self.body, env, as_value=True)
@@ -308,7 +309,7 @@ class SExpCond(SExp):
 
         if first_predicate == 'else':
             if rest:
-                raise Exception('ELSE clause is not last -- COND->IF')
+                raise SchemeError('ELSE clause is not last -- COND->IF')
             return seq_to_exp(first_acts)
 
         return ('if', first_predicate, seq_to_exp(first_acts), SExpCond._expand_clauses(rest))
@@ -320,7 +321,7 @@ class SExpLet(SExp):
             bounds, *body = exp[1:]
             self.app = analyze(self._to_combination(bounds, tuple(body)))
         except (IndexError, ValueError):
-            raise Exception('Malformed let')
+            raise SchemeError('Malformed let')
 
     def __call__(self, env, *__):
         return EvalRequest(self.app, env, as_value=True)
@@ -372,4 +373,4 @@ def analyze(exp):
         else:
             # exp can only be application
             return SExpApplication(exp)
-    raise Exception('Unknown expression type -- ANALYZE (%s)' % str(exp))
+    raise TypeError('Unknown expression type -- ANALYZE (%s)' % str(exp))

@@ -1,24 +1,24 @@
 """Implementation of primitive procedures."""
 import sys
 from functools import reduce
-from .core import SPrimitiveProc
+from .core import SPrimitiveProc, SchemeError
 from .expression import *
 from .parser import parse_input
 
 
 def check_len_eq(operands, num):
     if len(operands) != num:
-        raise Exception('take exactly %d argument' % num)
+        raise SchemeError('take exactly %d argument' % num)
 
 
 def check_len_gt(operands, num):
     if len(operands) <= num:
-        raise Exception('Too few arguments')
+        raise SchemeError('Too few arguments')
 
 
 def extract_instance(operands, t):
     if len(operands) != 1 or not isinstance(operands[0], t):
-        raise Exception('Expected a %s', t)
+        raise SchemeError('Expected a %s' % t.__name__[1:])
     return operands[0]
 
 
@@ -88,10 +88,7 @@ def _prim_cons(operands, *__):
 def _gen_pair_dr(part):
     """Used to generate shortcuts like cadr."""
     def template(operands, *__):
-        check_len_eq(operands, 1)
-        pair = operands[0]
-        if pair.__class__ != SPair:
-            raise Exception('Not a pair')
+        pair = extract_instance(operands, SPair)
         return getattr(pair, part)
 
     return SPrimitiveProc(template)
@@ -102,7 +99,7 @@ def _gen_pair_set(part):
         check_len_eq(operands, 2)
         pair, value = operands
         if pair.__class__ != SPair:
-            raise Exception('Not a pair')
+            raise SchemeError('Not a pair')
         setattr(pair, part, value)
         return theNil
 
@@ -125,11 +122,11 @@ def _prim_apply(operands, env, evaluator):
     check_len_eq(operands, 2)
     proc, args = operands
     if not isinstance(proc, SProc):
-        raise Exception('Unknown procedure type')
+        raise SchemeError('Unknown procedure type')
     try:
         args = args.to_py_list()
     except AttributeError:
-        raise Exception('Arguments should be a list')
+        raise SchemeError('Arguments should be a list')
     return proc.apply(args, env, evaluator)
 
 
@@ -141,12 +138,15 @@ def _prim_read(operands, *__):
 
 
 def _prim_error(operands, *__):
-    raise Exception(' '.join(map(str, operands)))
+    raise SchemeError(' '.join(map(str, operands)))
 
 
 def _prim_load(operands, env, evaluator):
     filename = extract_instance(operands, SString)
-    evaluator.load_file(filename, env)
+    try:
+        evaluator.load_file(filename, env)
+    except (SchemeError, FileNotFoundError) as e:
+        raise SchemeError(str(e))
     return theNil
 
 
@@ -155,7 +155,7 @@ def _prim_load_ext(operands, env, __):
     module_name = extract_instance(operands, SString)
     ext = __import__(str(module_name))
     if not hasattr(ext, 'tsi_ext_flag'):
-        raise Exception('Wrong extension name')
+        raise SchemeError('Wrong extension name')
     ext.setup(env)
     return theNil
 

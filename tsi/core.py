@@ -33,8 +33,8 @@ class SPrimitiveProc(SProc):
     def apply(self, operands, env, evaluator):
         try:
             return self._imp(operands, env, evaluator)
-        except Exception as e:
-            raise Exception('%s -- %s' % (str(e), self.name))
+        except SchemeError as e:
+            raise SchemeError('%s -- %s' % (str(e), self.name))
 
     def raw_apply(self, operands, env, evaluator):
         return self._imp(operands, env, evaluator)
@@ -55,7 +55,7 @@ class SCompoundProc(SProc):
     def apply(self, operands, *__):
         # because of static scope, env argument is ignored
         if len(self.parameters) != len(operands):
-            raise Exception('Wrong number of args -- APPLY (%s)' % str(self))
+            raise SchemeError('Wrong number of args -- APPLY (%s)' % str(self))
         new_env = self.env.make_extend(zip(self.parameters, operands))
         # eliminate all tail call, including tail recursion
         return EvalRequest(self.body, new_env, as_value=True)
@@ -82,7 +82,7 @@ class SEnvironment:
         if var in self.vars:
             return self.vars[var]
         elif self.enclosing is None:
-            raise Exception('Unbound variable (%s)' % var)
+            raise SchemeError('Unbound variable (%s)' % var)
         else:
             return self.enclosing.get_var_value(var)
 
@@ -90,7 +90,7 @@ class SEnvironment:
         if var in self.vars:
             self.vars[var] = value
         elif self.enclosing is None:
-            raise Exception('Setting unbound variable (%s)' % var)
+            raise SchemeError('Setting unbound variable (%s)' % var)
         else:
             return self.enclosing.set_var_value(var, value)
 
@@ -119,6 +119,11 @@ class EvalRequest:
 
     def get_all(self):
         return self.seq
+
+
+class SchemeError(Exception):
+    """Error in the language being interpreted."""
+    pass
 
 
 class ContinuationInvoked(Exception):
