@@ -1,11 +1,12 @@
 import re
 from collections import deque
+from .core import SchemeError
 
 # left parenthesis | right parenthesis | string like "www www" | quote | symbol
 _tokenize = re.compile(r'''\(|\)|"[^"]*"|'|[^\(\)\s"]+''')
 
 
-class IncompleteInputError(ValueError):
+class IncompleteInputError(SchemeError):
     pass
 
 
@@ -29,7 +30,7 @@ def parse(s, multi_exp=False):
             assert tokens.popleft() == ')'
             return tuple(level_lst)
         elif token == ')':
-            raise ValueError("Parenthesis doesn't match")
+            raise SchemeError("Parenthesis doesn't match")
         elif token == "'":
             return ('quote', read_from_tokens())
         else:
@@ -44,7 +45,7 @@ def parse(s, multi_exp=False):
     except IndexError:
         raise IncompleteInputError('Too few right parentheses')
     if tokens:
-        raise ValueError('Too many right parentheses or more than one expression')
+        raise SchemeError('Too many right parentheses or more than one expression')
     return ret
 
 
