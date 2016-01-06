@@ -1,8 +1,9 @@
 import os
 import sys
+from copy import copy
 from collections import deque
 from . import __version__
-from .core import SEnvironment, EvalRequest, ContinuationInvoked, SObject, SchemeError
+from .core import SEnvironment, EvalRequest, ContinuationInvoked, SObject, SchemeError, SExp
 from .parser import parse, parse_input
 from .expression import theNil, analyze, theTrue, theFalse
 from .primitives import prim_proc_name_imp
@@ -10,8 +11,6 @@ from .primitives import prim_proc_name_imp
 
 class Evaluator:
     def __init__(self):
-        # settings
-        self.debug = False
         # interactive mode settings
         self.in_prompt = '>>'
 
@@ -21,7 +20,7 @@ class Evaluator:
 
     def driver_loop(self):
         """The read-eval-print loop."""
-        print('Toy Scheme Interpreter v%s' % __version__)
+        print('Toy Scheme Interpreter v%s  (EOF to exit)' % __version__)
         while True:
             print(self.in_prompt, end='')
             try:
@@ -37,13 +36,12 @@ class Evaluator:
 
     def eval(self, s, script=False):
         if not isinstance(s, str):
-            raise TypeError('str excepted')
+            raise TypeError('str expected')
         if not s:
-            raise ValueError('non-empty str excepted')
-        if script:
-            return self._eval(tuple(map(analyze, parse(s, multi_exp=True))), self.global_env)
-        else:
-            return self._eval([analyze(parse(s))], self.global_env)
+            raise ValueError('non-empty str expected')
+
+        analyzed = list(map(analyze, parse(s, True))) if script else [analyze(parse(s))]
+        return self._eval(analyzed, self.global_env)
 
     def _eval(self, analyzed_exps, env):
         self._stack = deque(reversed(analyzed_exps))
@@ -59,8 +57,8 @@ class Evaluator:
 
     def _eval_iterator(self, ret=None):
         """The eval, but only EvalRequest handled here. This part is aimed only to
-        break Python's recursion limit. The real implementation of expressions is
-        in SExp.__call__."""
+        break Python's recursion limit, and method used is known as "trampoline".
+        The real implementation of expressions is in SExp.__call__."""
         # apply still alive, it's hiding in SExpApplication
         # sys.setrecursionlimit wins if we can set stack limit of interpreter...
         stack, env_stack = self._stack, self._env_stack
@@ -74,7 +72,7 @@ class Evaluator:
                     e.idx += 1
                     stack.extend((e, e.seq[e.idx]))
                 else:  # request finished
-                    env_stack.pop()  # Continuation.Invoke may happen, so pop first
+                    env_stack.pop()  # Continuation may be invoked, so pop first
                     if e.idx == len(e.seq) - 2 and e.as_value:
                         # Not eval the last expression, but let it be the value of
                         # the caller. This prevent stack from growing and achieved TCO.
@@ -102,9 +100,19 @@ class Evaluator:
         return ret
 
     def take_snapshot(self):
-        # there may be potential bugs because "real" copy is not performed
-        # but it works now...
-        return tuple(self._stack), tuple(self._env_stack)
+        # Can't 100% sure what to copy and how deep to copy, bugs may still
+        # exists. Forcing control flags of EvalReq to be immutable is a bad
+        # idea.
+        def copy_stack(x):
+            if x.__class__ == EvalRequest:
+                req = copy(x)  # shallow copy
+                req.seq = copy(x.seq)
+                return req
+            else:
+                assert isinstance(x, SExp)
+                return x
+
+        return tuple(map(copy_stack, self._stack)), tuple(self._env_stack)
 
     def restore_snapshot(self, snapshot):
         self._stack, self._env_stack = map(deque, snapshot)
@@ -114,7 +122,7 @@ class Evaluator:
         if not path.endswith('.scm'):
             path += '.scm'
         with open(path, encoding='utf-8') as f:
-            return self._eval(tuple(map(analyze, parse(f.read(), multi_exp=True))),
+            return self._eval(list(map(analyze, parse(f.read(), True))),
                               env or self.global_env)
 
     def _create_global_env(self):

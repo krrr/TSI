@@ -102,14 +102,14 @@ class SEnvironment:
 class EvalRequest:
     """Returning instance of this class (in SExp.__call__) to let the
     eval evaluate some expressions. The eval will send this instance back
-    after done evaluation."""
+    after evaluation is done. It's also called "stack frame"."""
     def __init__(self, exp, env, as_value=False, **kwargs):
         self.seq = list(exp) if isinstance(exp, (list, tuple)) else [exp]
         self.env = env  # eval under this environment
         self.idx = -1  # index of last evaluated exp
         self.caller = None  # the SExp which made this request, set by _eval_iterator
         self.as_value = as_value  # whether last exp of seq should be the caller's value
-        # control flags set by caller
+        # control flags set by caller, must be immutable
         for k, v in kwargs.items():
             setattr(self, k, v)
 
