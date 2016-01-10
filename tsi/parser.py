@@ -11,10 +11,9 @@ class IncompleteInputError(SchemeError):
 
 
 def parse(s, multi_exp=False):
-    """Parse a string that contains scheme expression. Multiple expressions
-    is allowed only if multi_exp is True. Result should be a "cell", which
-    is string or tuple of cells. If multi_exp is True, result should be a
-    tuple of cells.
+    """Parse a string that contains scheme expression. Result should be atom (string)
+    or tuple of atoms. Multiple expressions is allowed only if multi_exp is True,
+    and it always return a tuple of atoms.
     Examples:
         (define aa 1) => ('define', 'aa', '1')
         'a 'b => (('quote', 'a'), ('quote', 'b'))  # multi_exp enabled"""
@@ -24,11 +23,11 @@ def parse(s, multi_exp=False):
         apply this function) in matched parenthesis. Else, return the first token."""
         token = tokens.popleft()
         if token == '(':
-            level_lst = []  # tokens from current level (depth)
+            lv = deque()  # tokens from current level (depth)
             while tokens[0] != ')':
-                level_lst.append(read_from_tokens())
+                lv.append(read_from_tokens())
             assert tokens.popleft() == ')'
-            return tuple(level_lst)
+            return tuple(lv)
         elif token == ')':
             raise SchemeError("Parenthesis doesn't match")
         elif token == "'":
@@ -39,7 +38,10 @@ def parse(s, multi_exp=False):
     if not multi_exp and not s:
         raise IncompleteInputError('Nothing to parse')
     s = ''.join(map(lambda l: l.partition(';')[0], s.split('\n')))
-    tokens = deque(_tokenize.findall('(%s)' % s if multi_exp else s))
+    if multi_exp:
+        s = '(%s)' % s
+    tokens = deque(_tokenize.findall(s))
+
     try:
         ret = read_from_tokens()
     except IndexError:
@@ -50,8 +52,8 @@ def parse(s, multi_exp=False):
 
 
 def parse_input():
-    """This is similar to Scheme's read, except that all atom (such as +, 23, x)
-    is string."""
+    """This is similar to Scheme's read, except that all atoms (such as +, 23, x)
+    are string."""
     s = input()
     while True:
         try:

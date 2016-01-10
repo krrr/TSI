@@ -1,6 +1,6 @@
 class SObject:
-    """Anything in the Scheme world is SObject. SObject know its text
-    representation either by implementing manually or using Python's."""
+    """Everything in the Scheme world is SObject. SObject know its text
+    representation either by override __str__ or using Python's."""
 
 
 class SExp(SObject):
@@ -9,8 +9,8 @@ class SExp(SObject):
     def __call__(self, env, evaluator, req=None):
         """Evaluate this expression in the given environment and return result.
         If it's necessary to evaluate other expressions, an EvalRequest() will
-        be returned. After eval has done, it will resume us with the result
-        (by passing "exp" argument)."""
+        be returned. After eval is done, it will call this method the result
+        (by passing "req" argument)."""
         raise NotImplementedError
 
 
@@ -24,7 +24,7 @@ class SPrimitiveProc(SProc):
     def __init__(self, implement, name=None, err_msg_name=True):
         self._imp = implement
         self.name = name
-        if not err_msg_name:  # don't add procedure name after message
+        if not err_msg_name:  # don't add procedure name after error message
             self.apply = self.raw_apply
 
     def __str__(self):
@@ -57,7 +57,7 @@ class SCompoundProc(SProc):
         if len(self.parameters) != len(operands):
             raise SchemeError('Wrong number of args -- APPLY (%s)' % str(self))
         new_env = self.env.make_extend(zip(self.parameters, operands))
-        # eliminate all tail call, including tail recursion
+        # eliminate all tail calls, including tail recursion
         return EvalRequest(self.body, new_env, as_value=True)
 
 

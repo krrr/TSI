@@ -60,4 +60,3 @@
 (define (cddddr pair) (cdr (cdr (cdr pair))))
 (define (caadr pair) (car (car (cdr pair))))
 (define (cdadr pair) (cdr (car (cdr pair))))
-
