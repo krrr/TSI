@@ -373,4 +373,4 @@ def analyze(exp):
         else:
             # exp can only be application
             return SExpApplication(exp)
-    raise TypeError('Unknown expression type -- ANALYZE (%s)' % str(exp))
+    raise SchemeError('Unknown expression type -- ANALYZE (%s)' % str(exp))
