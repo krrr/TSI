@@ -67,6 +67,9 @@ class SNil(SObject):
     def __str__(self):
         return '()'
 
+    def to_py_list(self):
+        return []
+
 
 class SPair(SObject):
     def __init__(self, car=None, cdr=None):

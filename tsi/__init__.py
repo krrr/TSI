@@ -2,7 +2,7 @@ import os
 import sys
 
 __author__ = 'krrr'
-__version__ = '0.04'
+__version__ = '0.5'
 
 
 from .evaluator import Evaluator
