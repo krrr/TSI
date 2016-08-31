@@ -2,8 +2,7 @@ import os
 import sys
 from copy import copy
 from collections import deque
-from . import __version__
-from .core import SEnvironment, EvalRequest, ContinuationInvoked, SObject, SchemeError, SExp
+from . import __version__, SEnvironment, EvalRequest, ContinuationInvoked, SObject, SchemeError, SExp
 from .parser import parse, parse_input
 from .expression import theNil, analyze, theTrue, theFalse
 from .primitives import prim_proc_name_imp

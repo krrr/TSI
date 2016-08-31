@@ -1,7 +1,7 @@
 """Implementation of primitive procedures."""
 import sys
 from functools import reduce
-from .core import SPrimitiveProc, SchemeError
+from . import SPrimitiveProc, SchemeError
 from .expression import *
 from .parser import parse_input
 

@@ -1,6 +1,6 @@
 import re
-from .core import (EvalRequest, SObject, SExp, SProc, SCompoundProc,
-                   ContinuationInvoked, SchemeError)
+from . import (EvalRequest, SObject, SExp, SProc, SCompoundProc,
+               ContinuationInvoked, SchemeError)
 
 
 class SSelfEvalExp(SExp):

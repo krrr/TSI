@@ -1,6 +1,6 @@
 import re
 from collections import deque
-from .core import SchemeError
+from . import SchemeError
 
 # left parenthesis | right parenthesis | string like "www www" | quote | symbol
 _tokenize = re.compile(r'''\(|\)|"[^"]*"|'|[^\(\)\s"]+''')
