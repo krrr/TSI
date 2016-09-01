@@ -6,7 +6,7 @@ import sys
 import subprocess
 import turtleext
 from io import StringIO
-from tsi import Evaluator
+from tsi.evaluator import Evaluator
 from tsi.expression import theNil
 
 
@@ -39,7 +39,7 @@ def exec_script(script):
     origin_stdout = sys.stdout
     out = sys.stdout = StringIO()
     evaluator = Evaluator()
-    evaluator.eval(script, True)
+    evaluator.eval(script)
     sys.stdout = origin_stdout
 
     image = None

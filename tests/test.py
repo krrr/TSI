@@ -8,18 +8,19 @@ ev = lambda exp: evaluator.eval(exp)  # shortcut
 
 class TestParser(TestCase):
     def test(self):
-        self.assertEqual(parse('(define aa 1)'), ('define', 'aa', '1'))
-        self.assertEqual(parse('(lambda () (lambda () 1))'),
+        self.assertEqual(parse('1'), ('1',))
+        self.assertEqual(parse('1 2'), ('1', '2'))
+        self.assertEqual(parse('(define aa 1)')[0], ('define', 'aa', '1'))
+        self.assertEqual(parse('(lambda () (lambda () 1))')[0],
                          ('lambda', (), ('lambda', (), '1')))
 
     def test_quote(self):
-        self.assertEqual(parse("'a"), ('quote', 'a'))
-        self.assertEqual(parse("'()"), ('quote', ()))
+        self.assertEqual(parse("'a")[0], ('quote', 'a'))
+        self.assertEqual(parse("'()")[0], ('quote', ()))
 
     def test_errors(self):
         self.assertRaises(Exception, parse, '')
         self.assertRaises(Exception, parse, '())')
-        self.assertRaises(Exception, parse, "'more-than-one-exp 'at-one-line")
 
 
 class TestEvaluator(TestCase):

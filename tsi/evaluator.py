@@ -1,8 +1,9 @@
 import os
 import sys
 from copy import copy
-from collections import deque
-from . import __version__, SEnvironment, EvalRequest, ContinuationInvoked, SObject, SchemeError, SExp
+from collections import deque, Iterable
+from . import (__version__, SEnvironment, EvalRequest, ContinuationInvoked,
+               SObject, SchemeError, SExp)
 from .parser import parse, parse_input
 from .expression import theNil, analyze, theTrue, theFalse
 from .primitives import prim_proc_name_imp
@@ -11,11 +12,12 @@ from .primitives import prim_proc_name_imp
 class Evaluator:
     def __init__(self):
         # interactive mode settings
-        self.in_prompt = '>>'
+        self.in_prompt = '>> '
 
-        self.global_env = self._create_global_env()
         self._stack = None
         self._env_stack = None
+        self._global_env = SEnvironment()
+        self._setup_global_env()
 
     def driver_loop(self):
         """The read-eval-print loop."""
@@ -23,7 +25,7 @@ class Evaluator:
         while True:
             print(self.in_prompt, end='')
             try:
-                out = self._eval([analyze(parse_input())], self.global_env)
+                out = self._eval(analyze(parse_input()), self._global_env)
                 if out is not theNil:
                     print(out)
             except KeyboardInterrupt:
@@ -33,17 +35,17 @@ class Evaluator:
             except SchemeError as e:
                 print('Error: %s' % e, file=sys.stderr)
 
-    def eval(self, s, script=False):
+    def eval(self, s):
         if not isinstance(s, str):
             raise TypeError('str expected')
         if not s:
             raise ValueError('non-empty str expected')
 
-        analyzed = list(map(analyze, parse(s, True))) if script else [analyze(parse(s))]
-        return self._eval(analyzed, self.global_env)
+        analyzed = map(analyze, parse(s))
+        return self._eval(analyzed, self._global_env)
 
-    def _eval(self, analyzed_exps, env):
-        self._stack = deque(reversed(analyzed_exps))
+    def _eval(self, ast, env):
+        self._stack = deque(list(ast)[::-1] if isinstance(ast, Iterable) else [ast])
         self._env_stack = deque([env])
         call_cc_value = None  # the value of (call/cc <proc>)
 
@@ -87,13 +89,13 @@ class Evaluator:
                         env_stack.append(ret.env)
                         stack.append(ret)
             else:
-                uo = e(env_stack[-1], self)
-                if uo.__class__ == EvalRequest:
-                    uo.caller = e
-                    env_stack.append(uo.env)
-                    stack.append(uo)
+                obj = e(env_stack[-1], self)
+                if obj.__class__ == EvalRequest:
+                    obj.caller = e
+                    env_stack.append(obj.env)
+                    stack.append(obj)
                 else:
-                    ret = uo
+                    ret = obj
         assert len(env_stack) == 1, 'only global env remains eventually'
         assert isinstance(ret, SObject)
         return ret
@@ -121,18 +123,17 @@ class Evaluator:
         if not path.endswith('.scm'):
             path += '.scm'
         with open(path, encoding='utf-8') as f:
-            return self._eval(list(map(analyze, parse(f.read(), True))),
-                              env or self.global_env)
+            return self._eval(map(analyze, parse(f.read())),
+                              env or self._global_env)
 
-    def _create_global_env(self):
-        env = SEnvironment()
-        env.extend(prim_proc_name_imp)
-        env.extend((('true', theTrue), ('false', theFalse), ('#t', theTrue),
-                    ('#f', theFalse), ('nil', theNil)))
+    def _setup_global_env(self):
+        self._global_env.extend(prim_proc_name_imp)
+        self._global_env.extend((('true', theTrue), ('false', theFalse), ('#t', theTrue),
+                                 ('#f', theFalse), ('nil', theNil)))
         # load stdlib
-        self.load_file(os.path.join(os.path.dirname(__file__), 'stdlib.scm'), env)
-        return env
+        self.load_file(os.path.join(os.path.dirname(__file__), 'stdlib.scm'))
 
     def reset(self):
         self._stack = self._env_stack = None
-        self.global_env = self._create_global_env()
+        self._global_env = SEnvironment()
+        self._setup_global_env()
