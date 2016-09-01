@@ -45,6 +45,7 @@ class Evaluator:
         return self._eval(analyzed, self._global_env)
 
     def _eval(self, ast, env):
+        # this method should not be called recursively
         self._stack = deque(list(ast)[::-1] if isinstance(ast, Iterable) else [ast])
         self._env_stack = deque([env])
         call_cc_value = None  # the value of (call/cc <proc>)

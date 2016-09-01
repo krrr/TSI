@@ -107,7 +107,7 @@ class EvalRequest:
     eval evaluate some expressions. The eval will send this instance back
     after evaluation is done. It's also called "stack frame"."""
     def __init__(self, exp, env, as_value=False, **kwargs):
-        self.seq = list(exp) if isinstance(exp, (list, tuple)) else [exp]
+        self.seq = [exp] if isinstance(exp, SExp) else list(exp)  # sequence of SExp to be evaluated
         self.env = env  # eval under this environment
         self.idx = -1  # index of last evaluated exp
         self.caller = None  # the SExp which made this request, set by _eval_iterator

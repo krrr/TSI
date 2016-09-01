@@ -1,9 +1,9 @@
 """Implementation of primitive procedures."""
 import sys
 from functools import reduce
-from . import SPrimitiveProc, SchemeError
+from . import SPrimitiveProc, EvalRequest, SchemeError
 from .expression import *
-from .parser import parse_input
+from .parser import parse, parse_input
 
 
 def check_len_eq(operands, num):
@@ -152,12 +152,11 @@ def _prim_error(operands, *__):
 
 
 def _prim_load(operands, env, evaluator):
-    filename = extract_instance(operands, SString)
-    try:
-        evaluator.load_file(filename, env)
-    except (SchemeError, FileNotFoundError) as e:
-        raise SchemeError(str(e))
-    return theNil
+    path = extract_instance(operands, SString)
+    if not path.endswith('.scm'):
+        path += '.scm'
+    with open(path, encoding='utf-8') as f:
+        return EvalRequest(map(analyze, parse(f.read())), env, as_value=True)
 
 
 def _prim_load_ext(operands, env, __):
