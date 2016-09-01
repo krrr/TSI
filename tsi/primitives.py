@@ -45,6 +45,16 @@ def _prim_div(operands, *__):
     return SNumber(reduce(lambda x, y: x / y, operands))
 
 
+def _prim_min(operands, *__):
+    check_len_gt(operands, 1)
+    return SNumber(min(operands))
+
+
+def _prim_max(operands, *__):
+    check_len_gt(operands, 1)
+    return SNumber(max(operands))
+
+
 def _prim_modulo(operands, *__):
     check_len_eq(operands, 2)
     return SNumber(operands[0] % operands[1])
@@ -166,6 +176,8 @@ prim_proc_name_imp = (
     ('-', SPrimitiveProc(_prim_sub)),
     ('*', SPrimitiveProc(_prim_mul)),
     ('/', SPrimitiveProc(_prim_div)),
+    ('min', SPrimitiveProc(_prim_min)),
+    ('max', SPrimitiveProc(_prim_max)),
     ('modulo', SPrimitiveProc(_prim_modulo)),
     ('<', _gen_prim_cmp(lambda x, y: x < y)),
     ('<=', _gen_prim_cmp(lambda x, y: x <= y)),
