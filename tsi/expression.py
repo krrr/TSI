@@ -124,7 +124,7 @@ class SExpApplication(SExp):
             try:
                 return proc.apply(operands, env, evaluator)
             except AttributeError:
-                raise SchemeError('Unknown procedure type -- APPLY (%s)' % str(proc))
+                raise SchemeError('Unknown procedure type (%s)' % str(proc), 'APPLY')
 
 
 class SExpCallCc(SExp):
@@ -312,7 +312,7 @@ class SExpCond(SExp):
 
         if first_predicate == 'else':
             if rest:
-                raise SchemeError('ELSE clause is not last -- COND->IF')
+                raise SchemeError('ELSE clause is not last', 'COND->IF')
             return seq_to_exp(first_acts)
 
         return ('if', first_predicate, seq_to_exp(first_acts), SExpCond._expand_clauses(rest))
@@ -376,4 +376,4 @@ def analyze(exp):
         else:
             # exp can only be application
             return SExpApplication(exp)
-    raise SchemeError('Unknown expression type -- ANALYZE (%s)' % str(exp))
+    raise SchemeError('Unknown expression type (%s)' % str(exp), 'ANALYZE')

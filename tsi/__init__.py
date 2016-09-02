@@ -37,7 +37,11 @@ class SPrimitiveProc(SProc):
         try:
             return self._imp(operands, env, evaluator)
         except SchemeError as e:
-            raise SchemeError('%s -- %s' % (str(e), self.name))
+            if not e.by:
+                e.by = self.name
+            raise
+        except Exception as e:
+            raise SchemeError(str(e), self.name)
 
     def raw_apply(self, operands, env, evaluator):
         return self._imp(operands, env, evaluator)
@@ -58,7 +62,7 @@ class SCompoundProc(SProc):
     def apply(self, operands, *__):
         # because of static scope, env argument is ignored
         if len(self.parameters) != len(operands):
-            raise SchemeError('Wrong number of args -- APPLY (%s)' % str(self))
+            raise SchemeError('Wrong number of args (%s)' % str(self), 'APPLY')
         new_env = self.env.make_extend(zip(self.parameters, operands))
         # eliminate all tail calls, including tail recursion
         return EvalRequest(self.body, new_env, as_value=True)
@@ -126,7 +130,12 @@ class EvalRequest:
 
 class SchemeError(Exception):
     """Error in the language being interpreted."""
-    pass
+    def __init__(self, msg, by=None):
+        self.msg = msg
+        self.by = by
+
+    def __str__(self):
+        return '%s -- %s' % (self.msg, self.by) if self.by else self.msg
 
 
 class ContinuationInvoked(Exception):
