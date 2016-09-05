@@ -15,7 +15,6 @@ class Evaluator:
         self.in_prompt = '>> '
 
         self._stack = None
-        self._env_stack = None
         self._global_env = SEnvironment()
         self._setup_global_env()
 
@@ -47,7 +46,6 @@ class Evaluator:
     def _eval(self, ast, env):
         # this method should not be called recursively
         self._stack = deque(list(ast)[::-1] if isinstance(ast, Iterable) else [ast])
-        self._env_stack = deque([env])
         call_cc_value = None  # the value of (call/cc <proc>)
 
         while True:
@@ -63,18 +61,24 @@ class Evaluator:
         The real implementation of expressions is in SExp.__call__."""
         # apply still alive, it's hiding in SExpApplication
         # sys.setrecursionlimit wins if we can set stack limit of interpreter...
-        stack, env_stack = self._stack, self._env_stack
+        def push_new_req(req, caller):
+            nonlocal env
+            req.caller = caller
+            env = req.env
+            stack.append(req)
+
+        stack, env = self._stack, self._global_env
         while stack:
-            e = stack.pop()  # e should be instance of SExp or EvalReq
+            e = stack.pop()  # instance of SExp or EvalReq
             if e.__class__ == EvalRequest:
                 if e.idx != -1:  # retrieve evaluated exp (except the first time)
                     e.seq[e.idx] = ret
 
                 if e.idx < len(e.seq) - 2 or (e.idx == len(e.seq) - 2 and not e.as_value):
                     e.idx += 1
-                    stack.extend((e, e.seq[e.idx]))
+                    stack.extend((e, e.seq[e.idx]))  # pushing of new EvalReq may happen here
+                    env = e.env
                 else:  # request finished
-                    env_stack.pop()  # Continuation may be invoked, so pop first
                     if e.idx == len(e.seq) - 2 and e.as_value:
                         # Not eval the last expression, but let it be the value of
                         # the caller. This prevent stack from growing and achieved TCO.
@@ -85,19 +89,14 @@ class Evaluator:
                         ret = caller(e.env, self, e)
 
                     if ret.__class__ == EvalRequest:
-                        # if result is still EvalReq, replace current EvalReq with this
-                        ret.caller = caller
-                        env_stack.append(ret.env)
-                        stack.append(ret)
+                        push_new_req(ret, caller)
             else:
-                obj = e(env_stack[-1], self)
+                obj = e(env, self)
                 if obj.__class__ == EvalRequest:
-                    obj.caller = e
-                    env_stack.append(obj.env)
-                    stack.append(obj)
+                    push_new_req(obj, e)
                 else:
                     ret = obj
-        assert len(env_stack) == 1, 'only global env remains eventually'
+
         assert isinstance(ret, SObject)
         return ret
 
@@ -114,10 +113,10 @@ class Evaluator:
                 assert isinstance(x, SExp)
                 return x
 
-        return tuple(map(copy_stack, self._stack)), tuple(self._env_stack)
+        return tuple(map(copy_stack, self._stack))
 
     def restore_snapshot(self, snapshot):
-        self._stack, self._env_stack = map(deque, snapshot)
+        self._stack = deque(snapshot)
 
     def load_file(self, path, env=None):
         """Execute a script in the environment."""
@@ -135,6 +134,6 @@ class Evaluator:
         self.load_file(os.path.join(os.path.dirname(__file__), 'stdlib.scm'))
 
     def reset(self):
-        self._stack = self._env_stack = None
+        self._stack = None
         self._global_env = SEnvironment()
         self._setup_global_env()
